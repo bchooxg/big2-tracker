@@ -276,14 +276,6 @@
     /* Player columns min-width */
     th:not(:first-child):not(:last-child):not(:nth-last-child(2)){min-width:90px}
 
-    /* Disable sticky columns on mobile — iOS WebKit bug causes viewport expansion */
-    @media(max-width:768px){
-      th:first-child,td.round-label,tr.totals-row td:first-child{
-        position:static;
-        box-shadow:none;
-      }
-    }
-
     .main-label{font-weight:700;font-size:.9rem}
     .sub-label{font-size:.72rem;color:var(--accent);font-weight:500}
     .cards-line{font-size:.75rem;color:var(--muted)}
@@ -331,6 +323,14 @@
       position:sticky;left:0;z-index:1;
       background:var(--surface);
       box-shadow:2px 0 4px rgba(0,0,0,.06);
+    }
+
+    /* Disable sticky columns on mobile */
+    @media(max-width:768px){
+      th:first-child,td.round-label,tr.totals-row td:first-child{
+        position:static;
+        box-shadow:none;
+      }
     }
 
     /* ── Modals ── */
