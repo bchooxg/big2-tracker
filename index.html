@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Big 2 Game Tracker</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f0f2f5;
+      --card: #ffffff;
+      --border: #e2e8f0;
+      --accent: #6366f1;
+      --accent-light: #eef2ff;
+      --pos: #16a34a;
+      --pos-bg: #f0fdf4;
+      --neg: #dc2626;
+      --neg-bg: #fef2f2;
+      --muted: #94a3b8;
+      --text: #1e293b;
+      --text2: #64748b;
+      --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+      --shadow-lg: 0 10px 25px rgba(0,0,0,0.15);
+      --r: 12px;
+      --rs: 8px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding-bottom: 48px;
+    }
+
+    header {
+      background: var(--accent);
+      color: white;
+      padding: 20px 24px;
+      text-align: center;
+      box-shadow: var(--shadow);
+    }
+    header h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.3px; }
+    header p { font-size: 0.82rem; opacity: 0.8; margin-top: 3px; }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 24px 16px; }
+
+    .card {
+      background: var(--card);
+      border-radius: var(--r);
+      box-shadow: var(--shadow);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .card h2 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 14px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .top-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media (max-width: 640px) { .top-grid { grid-template-columns: 1fr; } }
+
+    /* ---- Player list ---- */
+    .player-row {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+    }
+    .player-name-input {
+      flex: 1; border: 1px solid var(--border); border-radius: var(--rs);
+      padding: 7px 10px; font-size: 0.875rem; color: var(--text);
+      transition: border-color 0.15s;
+    }
+    .player-name-input:focus { outline: none; border-color: var(--accent); }
+
+    .btn-remove {
+      background: none; border: 1px solid var(--border); border-radius: var(--rs);
+      padding: 5px 10px; cursor: pointer; color: var(--neg); font-size: 0.8rem;
+      line-height: 1; transition: background 0.15s;
+    }
+    .btn-remove:hover:not(:disabled) { background: var(--neg-bg); }
+    .btn-remove:disabled { color: var(--muted); cursor: not-allowed; }
+
+    .btn-add-player {
+      width: 100%; padding: 8px; border: 2px dashed var(--border); border-radius: var(--rs);
+      background: none; color: var(--accent); font-size: 0.875rem; cursor: pointer;
+      margin-top: 6px; transition: background 0.15s, border-color 0.15s;
+    }
+    .btn-add-player:hover { background: var(--accent-light); border-color: var(--accent); }
+
+    /* ---- Round entry ---- */
+    .price-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+    .price-row label { font-size: 0.875rem; color: var(--text2); white-space: nowrap; }
+    .price-input {
+      width: 80px; border: 1px solid var(--border); border-radius: var(--rs);
+      padding: 7px 10px; font-size: 0.875rem;
+    }
+    .price-input:focus { outline: none; border-color: var(--accent); }
+
+    .entry-player-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 7px 0; border-bottom: 1px solid var(--border);
+    }
+    .entry-player-row:last-child { border-bottom: none; }
+
+    .cb-label {
+      display: flex; align-items: center; gap: 8px; flex: 1; cursor: pointer;
+      font-size: 0.875rem; user-select: none;
+    }
+    .cb-label input[type="checkbox"] {
+      width: 15px; height: 15px; accent-color: var(--accent); cursor: pointer; flex-shrink: 0;
+    }
+
+    .num-input {
+      width: 58px; border: 1px solid var(--border); border-radius: var(--rs);
+      padding: 6px 8px; font-size: 0.875rem; text-align: center;
+    }
+    .num-input:disabled { background: var(--bg); color: var(--muted); }
+    .num-input:focus { outline: none; border-color: var(--accent); }
+
+    .btn-row { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+
+    .btn-primary {
+      flex: 1; min-width: 100px; padding: 10px 14px;
+      background: var(--accent); color: white; border: none; border-radius: var(--rs);
+      font-size: 0.875rem; font-weight: 600; cursor: pointer; transition: opacity 0.15s;
+    }
+    .btn-primary:hover { opacity: 0.88; }
+
+    .btn-secondary {
+      flex: 1; min-width: 100px; padding: 10px 14px;
+      background: var(--accent-light); color: var(--accent);
+      border: 1px solid var(--accent); border-radius: var(--rs);
+      font-size: 0.875rem; font-weight: 600; cursor: pointer; transition: background 0.15s;
+    }
+    .btn-secondary:hover { background: #e0e7ff; }
+
+    .error-msg { color: var(--neg); font-size: 0.82rem; margin-top: 8px; min-height: 18px; }
+
+    /* ---- Results table ---- */
+    .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+    .results-table {
+      width: 100%; border-collapse: collapse; font-size: 0.85rem;
+      min-width: 460px;
+    }
+    .results-table th {
+      background: var(--bg); padding: 9px 12px; text-align: left;
+      font-weight: 600; color: var(--text2); font-size: 0.75rem;
+      text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap;
+    }
+    .results-table td {
+      padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top;
+    }
+    .results-table tr:last-child td { border-bottom: none; }
+    .results-table tbody tr:hover td { background: #f8fafc; }
+    .results-table tbody tr:hover td.winner-cell { background: #ddd6fe; }
+
+    .round-cell { white-space: nowrap; min-width: 110px; }
+    .round-num { display: block; font-weight: 600; }
+    .price-tag {
+      display: inline-block; margin-top: 3px; background: #fef3c7; color: #92400e;
+      font-size: 0.68rem; padding: 1px 6px; border-radius: 99px;
+    }
+    .special-tag {
+      display: inline-block; margin-top: 3px; background: var(--accent-light);
+      color: var(--accent); font-size: 0.68rem; font-weight: 700;
+      padding: 1px 6px; border-radius: 99px; letter-spacing: 0.3px;
+    }
+    .winner-tag { display: block; font-size: 0.72rem; color: var(--text2); margin-top: 2px; }
+
+    .player-cell { min-width: 85px; }
+    .card-lbl { display: block; font-size: 0.75rem; color: var(--text2); margin-bottom: 2px; }
+    .money { display: block; font-weight: 600; font-size: 0.88rem; }
+    .pos { color: var(--pos); }
+    .neg { color: var(--neg); }
+    .zero { color: var(--text2); }
+
+    .inactive-cell { color: var(--muted); font-size: 1rem; text-align: center; }
+    .winner-cell { background: var(--accent-light); }
+    .winner-badge {
+      display: inline-block; background: var(--accent); color: white;
+      font-size: 0.68rem; font-weight: 700; padding: 1px 6px; border-radius: 99px; margin-bottom: 3px;
+    }
+
+    .bal-ok { color: var(--muted); font-size: 0.78rem; white-space: nowrap; }
+    .bal-err { color: var(--neg); font-size: 0.78rem; font-weight: 600; white-space: nowrap; }
+
+    .act-cell { white-space: nowrap; }
+    .btn-act {
+      background: none; border: 1px solid var(--border); border-radius: var(--rs);
+      padding: 4px 8px; cursor: pointer; font-size: 0.8rem; margin-right: 4px;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .btn-edit:hover { background: var(--accent-light); border-color: var(--accent); }
+    .btn-del:hover { background: var(--neg-bg); border-color: var(--neg); }
+
+    .empty-state {
+      text-align: center; color: var(--muted); padding: 40px 16px; font-size: 0.875rem;
+    }
+
+    /* ---- Summary ---- */
+    .summary-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 16px;
+    }
+    @media (max-width: 480px) { .summary-grid { grid-template-columns: 1fr; } }
+
+    .sum-card { background: var(--bg); border-radius: var(--rs); padding: 14px 16px; text-align: center; }
+    .sum-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text2); margin-bottom: 6px; }
+    .sum-value { font-size: 1rem; font-weight: 700; color: var(--text); }
+
+    .btn-danger {
+      padding: 9px 18px; background: none; border: 1px solid var(--neg);
+      color: var(--neg); border-radius: var(--rs); font-size: 0.875rem;
+      cursor: pointer; transition: background 0.15s;
+    }
+    .btn-danger:hover { background: var(--neg-bg); }
+
+    /* ---- Modals ---- */
+    .overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 200; padding: 16px;
+    }
+    .overlay.hidden { display: none; }
+
+    .modal {
+      background: white; border-radius: var(--r); box-shadow: var(--shadow-lg);
+      padding: 24px; width: 100%; max-width: 460px; max-height: 92vh; overflow-y: auto;
+    }
+    .modal h3 { font-size: 1.05rem; font-weight: 600; margin-bottom: 16px; }
+
+    .mfooter { display: flex; gap: 10px; margin-top: 18px; justify-content: flex-end; }
+
+    .btn-cancel {
+      padding: 8px 16px; background: var(--bg); border: 1px solid var(--border);
+      border-radius: var(--rs); font-size: 0.875rem; cursor: pointer;
+    }
+    .btn-cancel:hover { background: var(--border); }
+
+    .fgroup { margin-bottom: 14px; }
+    .fgroup label { display: block; font-size: 0.82rem; color: var(--text2); margin-bottom: 5px; }
+    .fgroup input, .fgroup select {
+      width: 100%; border: 1px solid var(--border); border-radius: var(--rs);
+      padding: 8px 10px; font-size: 0.875rem; color: var(--text);
+    }
+    .fgroup input:focus, .fgroup select:focus { outline: none; border-color: var(--accent); }
+
+    .modal-note { font-size: 0.82rem; color: var(--text2); margin-top: 10px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Big 2 Game Tracker</h1>
+  <p>Track your Big Two scores with ease</p>
+</header>
+
+<div class="container">
+  <div class="top-grid">
+    <div class="card">
+      <h2>Players</h2>
+      <div id="player-list"></div>
+      <button class="btn-add-player" id="btn-add-player">+ Add Player</button>
+    </div>
+
+    <div class="card">
+      <h2>Round Entry</h2>
+      <div class="price-row">
+        <label for="price-per-card">Price per Card ($)</label>
+        <input type="number" id="price-per-card" class="price-input" min="0.1" step="0.1" value="1">
+      </div>
+      <div id="entry-players"></div>
+      <div id="entry-error" class="error-msg"></div>
+      <div class="btn-row">
+        <button class="btn-primary" id="btn-add-round">Add Round</button>
+        <button class="btn-secondary" id="btn-add-special">Add Special Combo</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Game Results</h2>
+    <div id="results-container"></div>
+  </div>
+
+  <div class="card">
+    <h2>Session Summary</h2>
+    <div class="summary-grid">
+      <div class="sum-card">
+        <div class="sum-label">Total Rounds</div>
+        <div class="sum-value" id="sum-rounds">0</div>
+      </div>
+      <div class="sum-card">
+        <div class="sum-label">Biggest Winner</div>
+        <div class="sum-value" id="sum-winner">—</div>
+      </div>
+      <div class="sum-card">
+        <div class="sum-label">Biggest Loser</div>
+        <div class="sum-value" id="sum-loser">—</div>
+      </div>
+    </div>
+    <button class="btn-danger" id="btn-reset">Reset Game</button>
+  </div>
+</div>
+
+<!-- Edit Round Modal -->
+<div class="overlay hidden" id="edit-overlay">
+  <div class="modal">
+    <h3>Edit Round</h3>
+    <div id="edit-body"></div>
+    <div id="edit-error" class="error-msg"></div>
+    <div class="mfooter">
+      <button class="btn-cancel" id="edit-cancel">Cancel</button>
+      <button class="btn-primary" id="edit-save" style="flex:none;padding:8px 18px">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Special Combo Modal -->
+<div class="overlay hidden" id="combo-overlay">
+  <div class="modal">
+    <h3>Special Combo — Select Winner</h3>
+    <div class="fgroup">
+      <label for="combo-winner">Winner</label>
+      <select id="combo-winner"></select>
+    </div>
+    <p class="modal-note">Each other active player pays $3. Winner receives $3 × number of other players.</p>
+    <div class="mfooter">
+      <button class="btn-cancel" id="combo-cancel">Cancel</button>
+      <button class="btn-primary" id="combo-confirm" style="flex:none;padding:8px 18px">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// =========================================================
+// STATE
+// =========================================================
+let _nextPid = 5;
+let _nextRoundNum = 1;
+let _pendingComboActive = null; // active pids for pending special combo
+
+const state = {
+  players: [
+    { id: 'p1', name: 'Player 1' },
+    { id: 'p2', name: 'Player 2' },
+    { id: 'p3', name: 'Player 3' },
+    { id: 'p4', name: 'Player 4' },
+  ],
+  rounds: [],
+};
+
+// =========================================================
+// SCORING
+// =========================================================
+function cardMultiplier(cards) {
+  if (cards >= 13) return 3;
+  if (cards >= 10) return 2;
+  return 1;
+}
+
+function computeScores(activePlayers, cardCounts, price) {
+  const scores = {};
+  activePlayers.forEach(p => { scores[p.id] = 0; });
+
+  // Iterate all ordered pairs — each unordered pair counted twice → divide by 2
+  for (let i = 0; i < activePlayers.length; i++) {
+    for (let j = 0; j < activePlayers.length; j++) {
+      if (i === j) continue;
+      const pi = activePlayers[i], pj = activePlayers[j];
+      const ci = cardCounts[pi.id], cj = cardCounts[pj.id];
+      if (ci < cj) {
+        const payment = cj * price * cardMultiplier(cj);
+        scores[pi.id] += payment;
+        scores[pj.id] -= payment;
+      }
+    }
+  }
+
+  activePlayers.forEach(p => { scores[p.id] /= 2; });
+  return scores;
+}
+
+function computeTotals() {
+  const totals = {};
+  state.players.forEach(p => { totals[p.id] = 0; });
+  state.rounds.forEach(r => {
+    Object.entries(r.playerData).forEach(([pid, d]) => {
+      if (totals[pid] !== undefined) totals[pid] += d.score;
+    });
+  });
+  return totals;
+}
+
+// =========================================================
+// UTILS
+// =========================================================
+function esc(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function fmt(val) {
+  const abs = Math.abs(val);
+  const s = '$' + abs.toFixed(2);
+  if (val > 0.005) return '+' + s;
+  if (val < -0.005) return '\u2212' + s;
+  return s;
+}
+
+function moneyClass(val) {
+  if (val > 0.005) return 'pos';
+  if (val < -0.005) return 'neg';
+  return 'zero';
+}
+
+function setError(id, msg) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = msg || '';
+}
+
+function getActiveChecked() {
+  return Array.from(document.querySelectorAll('.entry-cb:checked')).map(c => c.dataset.pid);
+}
+
+// =========================================================
+// RENDER — PLAYER LIST
+// =========================================================
+function renderPlayerList() {
+  const container = document.getElementById('player-list');
+  container.innerHTML = state.players.map(p => `
+    <div class="player-row">
+      <input type="text" class="player-name-input" value="${esc(p.name)}"
+             data-pid="${p.id}" aria-label="Player name">
+      <button class="btn-remove" data-pid="${p.id}"
+              ${state.players.length <= 2 ? 'disabled' : ''} title="Remove player">✕</button>
+    </div>
+  `).join('');
+
+  container.querySelectorAll('.player-name-input').forEach(inp => {
+    inp.addEventListener('change', e => {
+      const pid = e.target.dataset.pid;
+      const player = state.players.find(p => p.id === pid);
+      if (player) {
+        player.name = e.target.value.trim() || player.name;
+        renderEntry();
+        renderResults();
+        renderSummary();
+      }
+    });
+  });
+
+  container.querySelectorAll('.btn-remove').forEach(btn => {
+    btn.addEventListener('click', e => {
+      const pid = e.target.dataset.pid;
+      if (state.players.length <= 2) return;
+      state.players = state.players.filter(p => p.id !== pid);
+      render();
+    });
+  });
+}
+
+// =========================================================
+// RENDER — ROUND ENTRY
+// =========================================================
+function saveEntryState() {
+  const saved = {};
+  document.querySelectorAll('.entry-cb').forEach(cb => {
+    const pid = cb.dataset.pid;
+    const inp = document.querySelector(`.entry-cards[data-pid="${pid}"]`);
+    saved[pid] = { checked: cb.checked, cards: inp ? inp.value : '0' };
+  });
+  return saved;
+}
+
+function renderEntry(resetCards) {
+  const container = document.getElementById('entry-players');
+  const saved = resetCards ? null : saveEntryState();
+
+  container.innerHTML = state.players.map(p => `
+    <div class="entry-player-row">
+      <label class="cb-label">
+        <input type="checkbox" class="entry-cb" data-pid="${p.id}" checked>
+        <span>${esc(p.name)}</span>
+      </label>
+      <input type="number" class="num-input entry-cards" data-pid="${p.id}"
+             min="0" max="13" value="0">
+    </div>
+  `).join('');
+
+  // Restore saved state
+  if (saved) {
+    container.querySelectorAll('.entry-cb').forEach(cb => {
+      const pid = cb.dataset.pid;
+      const inp = container.querySelector(`.entry-cards[data-pid="${pid}"]`);
+      if (saved[pid]) {
+        cb.checked = saved[pid].checked;
+        if (inp) { inp.value = saved[pid].cards; inp.disabled = !saved[pid].checked; }
+      }
+    });
+  } else {
+    // Apply disabled state to start
+    container.querySelectorAll('.entry-cb').forEach(cb => {
+      const inp = container.querySelector(`.entry-cards[data-pid="${cb.dataset.pid}"]`);
+      if (inp) inp.disabled = !cb.checked;
+    });
+  }
+
+  // Wire checkbox toggle
+  container.querySelectorAll('.entry-cb').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const inp = container.querySelector(`.entry-cards[data-pid="${cb.dataset.pid}"]`);
+      if (inp) { inp.disabled = !cb.checked; if (!cb.checked) inp.value = '0'; }
+    });
+  });
+}
+
+// =========================================================
+// RENDER — RESULTS TABLE
+// =========================================================
+function renderResults() {
+  const container = document.getElementById('results-container');
+  if (state.rounds.length === 0) {
+    container.innerHTML = '<p class="empty-state">No rounds yet. Add a round to get started.</p>';
+    return;
+  }
+
+  let html = '<div class="table-scroll"><table class="results-table"><thead><tr>';
+  html += '<th>Round</th>';
+  state.players.forEach(p => { html += `<th>${esc(p.name)}</th>`; });
+  html += '<th>Balance</th><th>Actions</th>';
+  html += '</tr></thead><tbody>';
+
+  state.rounds.forEach(round => {
+    html += `<tr>`;
+
+    // Round label cell
+    if (round.type === 'normal') {
+      const priceTag = round.pricePerCard !== 1
+        ? `<span class="price-tag">$${round.pricePerCard}/card</span>` : '';
+      html += `<td class="round-cell"><span class="round-num">Round ${round.roundNum}</span>${priceTag}</td>`;
+    } else {
+      const winner = state.players.find(p => p.id === round.winnerPlayerId);
+      const wName = winner ? winner.name : '(removed)';
+      html += `<td class="round-cell">
+        <span class="round-num">Round ${round.roundNum}</span>
+        <span class="special-tag">Special Combo</span>
+        <span class="winner-tag">🏆 ${esc(wName)}</span>
+      </td>`;
+    }
+
+    // Player cells
+    state.players.forEach(p => {
+      const d = round.playerData[p.id];
+      if (!d || !d.active) {
+        html += `<td class="inactive-cell">—</td>`;
+      } else if (round.type === 'normal') {
+        html += `<td class="player-cell">
+          <span class="card-lbl">${d.cards} cards</span>
+          <span class="money ${moneyClass(d.score)}">${fmt(d.score)}</span>
+        </td>`;
+      } else {
+        const isWinner = round.winnerPlayerId === p.id;
+        html += `<td class="player-cell${isWinner ? ' winner-cell' : ''}">
+          ${isWinner ? '<span class="winner-badge">Winner</span>' : ''}
+          <span class="money ${moneyClass(d.score)}">${fmt(d.score)}</span>
+        </td>`;
+      }
+    });
+
+    // Balance check — sum ALL stored playerData (includes removed players)
+    const sum = Object.values(round.playerData).reduce((a, d) => a + d.score, 0);
+    if (Math.abs(sum) < 0.001) {
+      html += `<td class="bal-ok">✓ Balanced</td>`;
+    } else {
+      html += `<td class="bal-err">Error: ${fmt(sum)}</td>`;
+    }
+
+    // Action buttons
+    html += `<td class="act-cell">
+      ${round.type === 'normal'
+        ? `<button class="btn-act btn-edit" data-rid="${round.id}" title="Edit">✎</button>`
+        : ''}
+      <button class="btn-act btn-del" data-rid="${round.id}" title="Delete">🗑</button>
+    </td>`;
+
+    html += '</tr>';
+  });
+
+  html += '</tbody></table></div>';
+  container.innerHTML = html;
+
+  container.querySelectorAll('.btn-edit').forEach(btn => {
+    btn.addEventListener('click', () => openEditModal(btn.dataset.rid));
+  });
+  container.querySelectorAll('.btn-del').forEach(btn => {
+    btn.addEventListener('click', () => deleteRound(btn.dataset.rid));
+  });
+}
+
+// =========================================================
+// RENDER — SUMMARY
+// =========================================================
+function renderSummary() {
+  const totals = computeTotals();
+  document.getElementById('sum-rounds').textContent = state.rounds.length;
+
+  if (state.rounds.length === 0) {
+    document.getElementById('sum-winner').textContent = '—';
+    document.getElementById('sum-loser').textContent = '—';
+    return;
+  }
+
+  const sorted = state.players.slice().sort((a, b) => (totals[b.id] || 0) - (totals[a.id] || 0));
+  const best = sorted[0], worst = sorted[sorted.length - 1];
+  document.getElementById('sum-winner').textContent = `${best.name} (${fmt(totals[best.id])})`;
+  document.getElementById('sum-loser').textContent = `${worst.name} (${fmt(totals[worst.id])})`;
+}
+
+// =========================================================
+// FULL RENDER
+// =========================================================
+function render() {
+  renderPlayerList();
+  renderEntry();
+  renderResults();
+  renderSummary();
+}
+
+// =========================================================
+// ADD ROUND
+// =========================================================
+function addRound() {
+  setError('entry-error', '');
+  const price = parseFloat(document.getElementById('price-per-card').value);
+  if (isNaN(price) || price < 0.1) { setError('entry-error', 'Price per card must be ≥ 0.1.'); return; }
+
+  const activePids = getActiveChecked();
+  if (activePids.length < 2) { setError('entry-error', 'Select at least 2 active players.'); return; }
+  if (activePids.length > 4) { setError('entry-error', 'Select at most 4 active players.'); return; }
+
+  const cardCounts = {};
+  for (const pid of activePids) {
+    const inp = document.querySelector(`.entry-cards[data-pid="${pid}"]`);
+    const val = parseInt(inp.value, 10);
+    if (isNaN(val) || val < 0 || val > 13) {
+      setError('entry-error', 'Card counts must be between 0 and 13.');
+      return;
+    }
+    cardCounts[pid] = val;
+  }
+
+  const activePlayers = activePids.map(pid => state.players.find(p => p.id === pid));
+  const scores = computeScores(activePlayers, cardCounts, price);
+
+  const playerData = {};
+  state.players.forEach(p => {
+    const active = activePids.includes(p.id);
+    playerData[p.id] = { active, cards: active ? cardCounts[p.id] : 0, score: active ? scores[p.id] : 0 };
+  });
+
+  state.rounds.push({
+    id: 'r' + Date.now() + Math.random(),
+    type: 'normal',
+    roundNum: _nextRoundNum++,
+    pricePerCard: price,
+    playerData,
+  });
+
+  renderEntry(true); // reset card inputs
+  renderResults();
+  renderSummary();
+}
+
+// =========================================================
+// ADD SPECIAL COMBO
+// =========================================================
+function openSpecialCombo() {
+  setError('entry-error', '');
+  const activePids = getActiveChecked();
+  if (activePids.length < 2) { setError('entry-error', 'Select at least 2 active players.'); return; }
+  if (activePids.length > 4) { setError('entry-error', 'Select at most 4 active players.'); return; }
+
+  _pendingComboActive = activePids;
+  const sel = document.getElementById('combo-winner');
+  sel.innerHTML = activePids.map(pid => {
+    const p = state.players.find(p => p.id === pid);
+    return `<option value="${pid}">${esc(p.name)}</option>`;
+  }).join('');
+
+  document.getElementById('combo-overlay').classList.remove('hidden');
+}
+
+function confirmSpecialCombo() {
+  const activePids = _pendingComboActive;
+  const winnerPid = document.getElementById('combo-winner').value;
+  const otherPids = activePids.filter(pid => pid !== winnerPid);
+  const winnerScore = 3 * otherPids.length;
+
+  const playerData = {};
+  state.players.forEach(p => {
+    const active = activePids.includes(p.id);
+    let score = 0;
+    if (active) score = p.id === winnerPid ? winnerScore : -3;
+    playerData[p.id] = { active, score };
+  });
+
+  state.rounds.push({
+    id: 'r' + Date.now() + Math.random(),
+    type: 'special',
+    roundNum: _nextRoundNum++,
+    winnerPlayerId: winnerPid,
+    playerData,
+  });
+
+  document.getElementById('combo-overlay').classList.add('hidden');
+  renderResults();
+  renderSummary();
+}
+
+// =========================================================
+// EDIT ROUND MODAL
+// =========================================================
+function openEditModal(roundId) {
+  const round = state.rounds.find(r => r.id === roundId);
+  if (!round || round.type !== 'normal') return;
+
+  const overlay = document.getElementById('edit-overlay');
+  overlay.dataset.rid = roundId;
+  setError('edit-error', '');
+
+  const body = document.getElementById('edit-body');
+  body.innerHTML = `
+    <div class="fgroup">
+      <label>Price per Card ($)</label>
+      <input type="number" id="edit-price" min="0.1" step="0.1" value="${round.pricePerCard}">
+    </div>
+    <div>
+      ${state.players.map(p => {
+        const d = round.playerData[p.id] || { active: false, cards: 0 };
+        return `
+          <div class="entry-player-row">
+            <label class="cb-label">
+              <input type="checkbox" class="edit-cb" data-pid="${p.id}" ${d.active ? 'checked' : ''}>
+              <span>${esc(p.name)}</span>
+            </label>
+            <input type="number" class="num-input edit-cards" data-pid="${p.id}"
+                   min="0" max="13" value="${d.cards || 0}" ${!d.active ? 'disabled' : ''}>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+
+  body.querySelectorAll('.edit-cb').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const inp = body.querySelector(`.edit-cards[data-pid="${cb.dataset.pid}"]`);
+      if (inp) { inp.disabled = !cb.checked; if (!cb.checked) inp.value = '0'; }
+    });
+  });
+
+  overlay.classList.remove('hidden');
+}
+
+function saveEditRound() {
+  const overlay = document.getElementById('edit-overlay');
+  const roundId = overlay.dataset.rid;
+  const round = state.rounds.find(r => r.id === roundId);
+  if (!round) return;
+
+  setError('edit-error', '');
+  const body = document.getElementById('edit-body');
+  const price = parseFloat(document.getElementById('edit-price').value);
+  if (isNaN(price) || price < 0.1) { setError('edit-error', 'Price per card must be ≥ 0.1.'); return; }
+
+  const activePids = Array.from(body.querySelectorAll('.edit-cb:checked')).map(c => c.dataset.pid);
+  if (activePids.length < 2) { setError('edit-error', 'Select at least 2 players.'); return; }
+  if (activePids.length > 4) { setError('edit-error', 'Select at most 4 players.'); return; }
+
+  const cardCounts = {};
+  for (const pid of activePids) {
+    const inp = body.querySelector(`.edit-cards[data-pid="${pid}"]`);
+    const val = parseInt(inp.value, 10);
+    if (isNaN(val) || val < 0 || val > 13) { setError('edit-error', 'Card counts must be 0–13.'); return; }
+    cardCounts[pid] = val;
+  }
+
+  const activePlayers = activePids.map(pid => state.players.find(p => p.id === pid));
+  const scores = computeScores(activePlayers, cardCounts, price);
+
+  round.pricePerCard = price;
+  state.players.forEach(p => {
+    const active = activePids.includes(p.id);
+    round.playerData[p.id] = { active, cards: active ? cardCounts[p.id] : 0, score: active ? scores[p.id] : 0 };
+  });
+
+  overlay.classList.add('hidden');
+  renderResults();
+  renderSummary();
+}
+
+// =========================================================
+// DELETE ROUND
+// =========================================================
+function deleteRound(roundId) {
+  if (!confirm('Delete this round?')) return;
+  state.rounds = state.rounds.filter(r => r.id !== roundId);
+  state.rounds.forEach((r, i) => { r.roundNum = i + 1; });
+  _nextRoundNum = state.rounds.length + 1;
+  renderResults();
+  renderSummary();
+}
+
+// =========================================================
+// RESET GAME
+// =========================================================
+function resetGame() {
+  if (!confirm('Reset all rounds? Player names will be kept.')) return;
+  state.rounds = [];
+  _nextRoundNum = 1;
+  renderResults();
+  renderSummary();
+}
+
+// =========================================================
+// INIT
+// =========================================================
+document.getElementById('btn-add-player').addEventListener('click', () => {
+  const id = 'p' + _nextPid;
+  const name = 'Player ' + _nextPid;
+  _nextPid++;
+  state.players.push({ id, name });
+  render();
+});
+
+document.getElementById('btn-add-round').addEventListener('click', addRound);
+document.getElementById('btn-add-special').addEventListener('click', openSpecialCombo);
+document.getElementById('btn-reset').addEventListener('click', resetGame);
+
+document.getElementById('edit-cancel').addEventListener('click', () => {
+  document.getElementById('edit-overlay').classList.add('hidden');
+});
+document.getElementById('edit-save').addEventListener('click', saveEditRound);
+
+document.getElementById('combo-cancel').addEventListener('click', () => {
+  document.getElementById('combo-overlay').classList.add('hidden');
+});
+document.getElementById('combo-confirm').addEventListener('click', confirmSpecialCombo);
+
+// Close modals on backdrop click
+['edit-overlay', 'combo-overlay'].forEach(id => {
+  document.getElementById(id).addEventListener('click', e => {
+    if (e.target === e.currentTarget) e.currentTarget.classList.add('hidden');
+  });
+});
+
+render();
+</script>
+</body>
+</html>
