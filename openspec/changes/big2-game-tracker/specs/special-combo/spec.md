@@ -1,44 +1,52 @@
 ## ADDED Requirements
 
-### Requirement: Add special combo round
-The system SHALL provide an "Add Special Combo" button that creates a fixed-payout round independent of card counts.
+### Requirement: Special Combo entry
+The app SHALL provide an "Add Special Combo" button that creates a special round type not tied to card counts. The same active-player selection (2–4 players) from the round-entry section SHALL apply.
 
-#### Scenario: Add special combo with valid active players
-- **WHEN** 2–4 players are checked as active and the user clicks "Add Special Combo"
-- **THEN** the system presents a winner-selection UI (e.g., a dropdown) listing the active players
-- **AND** upon confirmation, the round is recorded with each non-winner paying $3 and the winner receiving $3 × (number of other active players)
+#### Scenario: Button triggers special combo flow
+- **WHEN** the user clicks "Add Special Combo"
+- **THEN** a modal or inline UI appears for selecting the winner among currently active players
 
-#### Scenario: Special combo is balanced
-- **WHEN** a special combo round is added
-- **THEN** the sum of all active players' scores for that round SHALL be zero
+#### Scenario: Active player validation applies
+- **WHEN** fewer than 2 or more than 4 players are active and the user clicks "Add Special Combo"
+- **THEN** an error is shown and the modal does not open
 
-#### Scenario: Insufficient active players for special combo
-- **WHEN** fewer than 2 players are checked as active and the user clicks "Add Special Combo"
-- **THEN** the system shows an error and does not add the round
+### Requirement: Special Combo payout calculation
+Each non-winner active player SHALL pay exactly $3. The winner SHALL receive $3 × (number of non-winner active players). The round MUST sum to zero.
 
-#### Scenario: Too many active players for special combo
-- **WHEN** more than 4 players are checked as active and the user clicks "Add Special Combo"
-- **THEN** the system shows an error and does not add the round
+#### Scenario: Three-player special combo payout
+- **WHEN** 3 players are active and Player A is selected as winner
+- **THEN** Player A receives +$6, Player B pays -$3, Player C pays -$3, sum = $0
 
-### Requirement: Special combo round display
-The system SHALL display special combo rounds in the Game Results table as their own row with distinct visual treatment.
+#### Scenario: Four-player special combo payout
+- **WHEN** 4 players are active and Player A is winner
+- **THEN** Player A receives +$9, others each pay -$3, sum = $0
 
-#### Scenario: Special combo row label
-- **WHEN** a special combo round is in the results table
-- **THEN** the Round column cell shows a "Special Combo" label (in accent color) and optionally the winner's name
-- **AND** no card counts are shown for any player cell — only money amounts
+### Requirement: Special Combo winner selection
+The app SHALL present a dropdown (select element) pre-populated with the names of currently active players for the user to choose the winner.
 
-#### Scenario: Winner cell highlight
-- **WHEN** a special combo round is displayed
-- **THEN** the winner's cell is visually highlighted (e.g., "Winner" label, accent color text)
+#### Scenario: Dropdown contains active players only
+- **WHEN** the special combo modal opens
+- **THEN** the winner dropdown lists exactly the currently active players and no others
 
-### Requirement: Special combo deletion
-The system SHALL allow special combo rounds to be deleted but not edited.
+### Requirement: Special Combo appearance in results table
+Special Combo rounds SHALL appear as their own row in the Game Results table with a visible "Special Combo" label in the Round column, the winner's name indicated, and only monetary values (no card counts) in player cells. The winner's cell SHALL be visually highlighted.
 
-#### Scenario: Delete special combo round
-- **WHEN** the user clicks the delete control on a special combo row
-- **THEN** that round is removed and all player totals and summaries are recalculated
+#### Scenario: Special Combo row shows monetary values only
+- **WHEN** a special combo round exists in the results table
+- **THEN** each active player's cell shows only a dollar amount (no "X cards" line)
 
-#### Scenario: No edit control for special combo
-- **WHEN** a special combo round is displayed in the results table
-- **THEN** no edit control is shown for that row
+#### Scenario: Winner cell is highlighted
+- **WHEN** a special combo round row is rendered
+- **THEN** the winner's cell displays a "Winner" indicator in the primary accent colour
+
+### Requirement: Special Combo deletion
+Special Combo rounds SHALL be deletable via the same per-row delete control as normal rounds. They SHALL NOT be editable.
+
+#### Scenario: Delete removes special combo row
+- **WHEN** the user clicks delete on a special combo row
+- **THEN** the row is removed and all totals and summaries are recalculated
+
+#### Scenario: No edit control on special combo rows
+- **WHEN** a special combo row is rendered
+- **THEN** no edit button or inline editing control is visible

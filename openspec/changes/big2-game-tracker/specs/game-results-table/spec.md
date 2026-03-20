@@ -1,57 +1,52 @@
 ## ADDED Requirements
 
-### Requirement: Dynamic table columns
-The system SHALL maintain a Game Results table with columns: "Round", one column per player (in player-list order), and "Balance Check". The table MUST update whenever players are added, removed, or renamed.
+### Requirement: Table structure
+The Game Results table SHALL have a "Round" column, one column per player in roster order, and a "Balance Check" column.
 
-#### Scenario: Player added updates table header
-- **WHEN** a new player is added
-- **THEN** a new column for that player appears in the Game Results table
+#### Scenario: Player columns match roster
+- **WHEN** the game results table is rendered
+- **THEN** there is one column header per player, in the same order as the player roster
 
-#### Scenario: Player removed updates table header
-- **WHEN** a player is removed
-- **THEN** that player's column is removed from the Game Results table
+### Requirement: Round column label
+Each row's Round cell SHALL display "Round N" (sequential 1-based count across all round types). For normal rounds with a price other than $1, a secondary label "$X/card" SHALL appear beneath "Round N". For special combo rounds, a "Special Combo" label (and optionally winner name) SHALL appear.
 
-### Requirement: Round column cell content
-The system SHALL display the round identifier and metadata in the Round column cell.
+#### Scenario: Normal round at default price shows no price label
+- **WHEN** a normal round is added at $1/card
+- **THEN** the Round cell shows "Round N" with no price annotation
 
-#### Scenario: Normal round label
-- **WHEN** a normal round row is rendered and price-per-card is 1
-- **THEN** the Round cell shows "Round N" (where N is the 1-based sequential round number)
-
-#### Scenario: Normal round with non-default price
-- **WHEN** a normal round row is rendered and price-per-card is not 1
-- **THEN** the Round cell shows "Round N" plus a small label like "$X/card"
+#### Scenario: Normal round at custom price shows price label
+- **WHEN** a normal round is added at $2/card
+- **THEN** the Round cell shows "Round N" and "$2/card" beneath it
 
 #### Scenario: Special combo round label
 - **WHEN** a special combo round row is rendered
-- **THEN** the Round cell shows a "Special Combo" label in accent color, optionally with the winner's name
+- **THEN** the Round cell shows "Round N" and "Special Combo" (with winner name)
 
-### Requirement: Normal round player cell content
-The system SHALL display card count and money result for each active player in normal round rows.
+### Requirement: Normal round player cells
+For a normal round, each active player's cell SHALL display the card count on one line and the monetary result below it (with a "+" prefix for positive values). Positive values SHALL be styled green, negative red, zero neutral. Inactive players SHALL show "-" in muted styling.
 
-#### Scenario: Active player cell
-- **WHEN** a player was active in a normal round
-- **THEN** their cell shows "X cards" on one line and their net money result below it
-- **AND** positive amounts are styled green, negative amounts are styled red
+#### Scenario: Active player shows cards and money
+- **WHEN** a player is active in a normal round
+- **THEN** their cell shows "X cards" and their monetary result with colour coding
 
-#### Scenario: Inactive player cell
-- **WHEN** a player was not active in a round
-- **THEN** their cell shows "−" in muted color
+#### Scenario: Inactive player shows dash
+- **WHEN** a player is not active in a round
+- **THEN** their cell displays "-" in a muted colour
 
-### Requirement: Special combo player cell content
-The system SHALL display only money amounts (no card counts) in special combo round rows.
+### Requirement: Balance Check column
+Each row's Balance Check cell SHALL compute the sum of all player scores for that round. If the absolute value is less than $0.01, it SHALL display "✓ Balanced" in muted text. Otherwise it SHALL display "Error: $X.XX" in red.
 
-#### Scenario: Non-winner special combo cell
-- **WHEN** a player was active but not the winner in a special combo round
-- **THEN** their cell shows their net money result (−$3.00) in red
+#### Scenario: Balanced round shows checkmark
+- **WHEN** a round's player scores sum to within $0.01 of zero
+- **THEN** the Balance Check cell shows "✓ Balanced"
 
-#### Scenario: Winner special combo cell
-- **WHEN** a player was the winner in a special combo round
-- **THEN** their cell shows their net money result in green with a "Winner" label in accent color
+#### Scenario: Unbalanced round shows error
+- **WHEN** a round's player scores do not sum to zero (beyond $0.01 tolerance)
+- **THEN** the Balance Check cell shows "Error: $X.XX" in red
 
 ### Requirement: Horizontal scroll on small screens
-The system SHALL make the Game Results table horizontally scrollable on small screens so no data is clipped.
+The game results table wrapper SHALL allow horizontal scrolling when the table content is wider than the viewport.
 
-#### Scenario: Table scrolls on narrow viewport
-- **WHEN** the viewport is narrower than the table's content width
-- **THEN** the table container allows horizontal scrolling without layout breakage
+#### Scenario: Table scrollable on narrow viewport
+- **WHEN** the viewport is narrow enough that the table overflows
+- **THEN** the table container scrolls horizontally without breaking the page layout

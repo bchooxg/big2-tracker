@@ -258,610 +258,612 @@
 
 <header>
   <h1>Big 2 Game Tracker</h1>
-  <p>Track your Big Two scores with ease</p>
+  <p>Track your Big Two card game scores</p>
 </header>
 
-<div class="container">
-  <div class="top-grid">
-    <div class="card">
-      <h2>Players</h2>
-      <div id="player-list"></div>
-      <button class="btn-add-player" id="btn-add-player">+ Add Player</button>
-    </div>
+<main>
 
-    <div class="card">
-      <h2>Round Entry</h2>
-      <div class="price-row">
-        <label for="price-per-card">Price per Card ($)</label>
-        <input type="number" id="price-per-card" class="price-input" min="0.1" step="0.1" value="1">
-      </div>
-      <div id="entry-players"></div>
-      <div id="entry-error" class="error-msg"></div>
-      <div class="btn-row">
-        <button class="btn-primary" id="btn-add-round">Add Round</button>
-        <button class="btn-secondary" id="btn-add-special">Add Special Combo</button>
-      </div>
+  <!-- ── Players ── -->
+  <div class="card">
+    <h2>Players</h2>
+    <div class="player-list" id="player-list"></div>
+    <div id="player-error" class="error-msg"></div>
+    <div style="margin-top:.75rem">
+      <button class="btn btn-ghost" onclick="addPlayer()">+ Add Player</button>
     </div>
   </div>
 
+  <!-- ── Round Entry ── -->
+  <div class="card">
+    <h2>Round Entry</h2>
+    <div class="entry-controls">
+      <label for="price-input">Price per Card ($)</label>
+      <input type="number" id="price-input" min="0.1" step="0.1" value="1">
+    </div>
+    <div class="player-grid" id="entry-player-grid"></div>
+    <div id="entry-error" class="error-msg"></div>
+    <div class="entry-actions">
+      <button class="btn btn-primary" onclick="addRound()">Add Round</button>
+      <button class="btn btn-accent"  onclick="openSpecialCombo()">Add Special Combo</button>
+    </div>
+  </div>
+
+  <!-- ── Game Results ── -->
   <div class="card">
     <h2>Game Results</h2>
-    <div id="results-container"></div>
+    <div class="table-wrapper">
+      <table id="results-table" style="display:none">
+        <thead id="results-thead"></thead>
+        <tbody id="results-tbody"></tbody>
+      </table>
+    </div>
+    <div id="no-rounds" style="text-align:center;color:var(--muted);padding:1.5rem;font-size:.9rem">
+      No rounds yet — add a round above!
+    </div>
   </div>
 
+  <!-- ── Summary ── -->
   <div class="card">
-    <h2>Session Summary</h2>
-    <div class="summary-grid">
-      <div class="sum-card">
-        <div class="sum-label">Total Rounds</div>
-        <div class="sum-value" id="sum-rounds">0</div>
-      </div>
-      <div class="sum-card">
-        <div class="sum-label">Biggest Winner</div>
-        <div class="sum-value" id="sum-winner">—</div>
-      </div>
-      <div class="sum-card">
-        <div class="sum-label">Biggest Loser</div>
-        <div class="sum-value" id="sum-loser">—</div>
-      </div>
-    </div>
-    <button class="btn-danger" id="btn-reset">Reset Game</button>
+    <h2>Summary</h2>
+    <div class="summary-grid" id="summary-grid"></div>
+    <button class="btn btn-ghost btn-sm" onclick="resetGame()">Reset Game</button>
   </div>
-</div>
 
-<!-- Edit Round Modal -->
-<div class="overlay hidden" id="edit-overlay">
-  <div class="modal">
-    <h3>Edit Round</h3>
-    <div id="edit-body"></div>
-    <div id="edit-error" class="error-msg"></div>
-    <div class="mfooter">
-      <button class="btn-cancel" id="edit-cancel">Cancel</button>
-      <button class="btn-primary" id="edit-save" style="flex:none;padding:8px 18px">Save</button>
-    </div>
-  </div>
-</div>
+</main>
 
-<!-- Special Combo Modal -->
-<div class="overlay hidden" id="combo-overlay">
-  <div class="modal">
-    <h3>Special Combo — Select Winner</h3>
-    <div class="fgroup">
-      <label for="combo-winner">Winner</label>
-      <select id="combo-winner"></select>
-    </div>
-    <p class="modal-note">Each other active player pays $3. Winner receives $3 × number of other players.</p>
-    <div class="mfooter">
-      <button class="btn-cancel" id="combo-cancel">Cancel</button>
-      <button class="btn-primary" id="combo-confirm" style="flex:none;padding:8px 18px">Confirm</button>
+<!-- ── Special Combo Modal ── -->
+<dialog id="special-modal">
+  <h3>Add Special Combo</h3>
+  <div class="modal-body">
+    <div class="modal-field">
+      <label for="special-winner-select">Select Winner</label>
+      <select id="special-winner-select"></select>
     </div>
   </div>
-</div>
+  <div class="modal-actions">
+    <button class="btn btn-ghost" onclick="document.getElementById('special-modal').close()">Cancel</button>
+    <button class="btn btn-accent" onclick="confirmSpecialCombo()">Confirm</button>
+  </div>
+</dialog>
+
+<!-- ── Edit Round Modal ── -->
+<dialog id="edit-modal">
+  <h3>Edit Round</h3>
+  <div class="modal-body">
+    <div class="modal-field">
+      <label for="edit-price-input">Price per Card ($)</label>
+      <input type="number" id="edit-price-input" min="0.1" step="0.1" value="1">
+    </div>
+    <div class="edit-player-grid" id="edit-player-grid"></div>
+    <div id="edit-error" class="error-msg" style="margin-top:.5rem"></div>
+  </div>
+  <div class="modal-actions">
+    <button class="btn btn-ghost" onclick="closeEditModal()">Cancel</button>
+    <button class="btn btn-primary" onclick="saveEdit()">Save</button>
+  </div>
+</dialog>
 
 <script>
-// =========================================================
+// ════════════════════════════════════════════════════════════
 // STATE
-// =========================================================
-let _nextPid = 5;
-let _nextRoundNum = 1;
-let _pendingComboActive = null; // active pids for pending special combo
+// ════════════════════════════════════════════════════════════
+
+let _nextPlayerId = 1;
+let _nextRoundId  = 1;
 
 const state = {
-  players: [
-    { id: 'p1', name: 'Player 1' },
-    { id: 'p2', name: 'Player 2' },
-    { id: 'p3', name: 'Player 3' },
-    { id: 'p4', name: 'Player 4' },
-  ],
-  rounds: [],
+  players: [],   // [{id, name}]
+  rounds:  []    // [{id, type, pricePerCard, participants, winnerId?}]
 };
 
-// =========================================================
-// SCORING
-// =========================================================
-function cardMultiplier(cards) {
-  if (cards >= 13) return 3;
-  if (cards >= 10) return 2;
+// Bootstrap 4 default players
+['Player 1','Player 2','Player 3','Player 4'].forEach(n =>
+  state.players.push({ id: _nextPlayerId++, name: n })
+);
+
+// ════════════════════════════════════════════════════════════
+// SCORING ENGINE
+// ════════════════════════════════════════════════════════════
+
+function getMultiplier(cards) {
+  if (cards === 13) return 3;
+  if (cards >= 10)  return 2;
   return 1;
 }
 
-function computeScores(activePlayers, cardCounts, price) {
-  const scores = {};
-  activePlayers.forEach(p => { scores[p.id] = 0; });
+function r2(v) { return Math.round(v * 100) / 100; }
 
-  // Iterate all ordered pairs — each unordered pair counted twice → divide by 2
-  for (let i = 0; i < activePlayers.length; i++) {
-    for (let j = 0; j < activePlayers.length; j++) {
-      if (i === j) continue;
-      const pi = activePlayers[i], pj = activePlayers[j];
-      const ci = cardCounts[pi.id], cj = cardCounts[pj.id];
-      if (ci < cj) {
-        const payment = cj * price * cardMultiplier(cj);
-        scores[pi.id] += payment;
-        scores[pj.id] -= payment;
-      }
+/**
+ * Compute zero-sum pairwise scores.
+ * participants: [{playerId, cards}]
+ * Returns [{playerId, cards, score}]
+ */
+function computeRoundScores(participants, pricePerCard) {
+  const raw = {};
+  participants.forEach(p => { raw[p.playerId] = 0; });
+
+  for (let i = 0; i < participants.length; i++) {
+    for (let j = i + 1; j < participants.length; j++) {
+      const a = participants[i], b = participants[j];
+      if (a.cards === b.cards) continue;
+      const winner = a.cards < b.cards ? a : b;
+      const loser  = a.cards < b.cards ? b : a;
+      const transfer = r2((loser.cards - winner.cards) * pricePerCard * getMultiplier(loser.cards));
+      raw[winner.playerId] += transfer;
+      raw[loser.playerId]  -= transfer;
     }
   }
 
-  activePlayers.forEach(p => { scores[p.id] /= 2; });
-  return scores;
+  return participants.map(p => ({
+    playerId: p.playerId,
+    cards:    p.cards,
+    score:    r2(raw[p.playerId])
+  }));
 }
+
+/**
+ * Compute special combo scores.
+ * activePlayerIds: number[]  winnerId: number
+ */
+function computeSpecialScores(activePlayerIds, winnerId) {
+  const others = activePlayerIds.filter(id => id !== winnerId);
+  const winnerScore = r2(3 * others.length);
+  return activePlayerIds.map(id => ({
+    playerId: id,
+    score: id === winnerId ? winnerScore : -3
+  }));
+}
+
+// ════════════════════════════════════════════════════════════
+// INLINE TESTS  (open DevTools → Console to see results)
+// ════════════════════════════════════════════════════════════
+
+(function runTests() {
+  function assert(cond, msg) {
+    if (cond) console.log('%c[PASS] ' + msg, 'color:green');
+    else      console.error('[FAIL] ' + msg);
+  }
+
+  // Rule B: payment = difference in card counts × price × multiplier(loser)
+  // 2-player: P1=3, P2=7 → P2 loses, diff=4, transfer=4×1×1=4
+  const r2p = computeRoundScores([{playerId:1,cards:3},{playerId:2,cards:7}], 1);
+  assert(Math.abs(r2p.reduce((s,p)=>s+p.score,0)) < 0.01,  '2-player sums to zero');
+  assert(r2p.find(p=>p.playerId===1).score ===  4,          '2-player winner gets +4 (diff=4)');
+  assert(r2p.find(p=>p.playerId===2).score === -4,          '2-player loser pays -4 (diff=4)');
+
+  // 3-player sums to zero
+  const r3p = computeRoundScores([{playerId:1,cards:2},{playerId:2,cards:5},{playerId:3,cards:9}],1);
+  assert(Math.abs(r3p.reduce((s,p)=>s+p.score,0)) < 0.01,  '3-player sums to zero');
+
+  // Multipliers
+  assert(getMultiplier(9)  === 1, 'multiplier 1x at 9 cards');
+  assert(getMultiplier(10) === 2, 'multiplier 2x at 10 cards');
+  assert(getMultiplier(12) === 2, 'multiplier 2x at 12 cards');
+  assert(getMultiplier(13) === 3, 'multiplier 3x at 13 cards');
+
+  // 13-card payout: P1=2, P2=13 → diff=11, multiplier=3×, transfer=11×1×3=33
+  const r13 = computeRoundScores([{playerId:1,cards:2},{playerId:2,cards:13}], 1);
+  assert(r13.find(p=>p.playerId===2).score === -33,           '13-card payout = -33 (diff=11, 3x)');
+  assert(Math.abs(r13.reduce((s,p)=>s+p.score,0)) < 0.01,    '13-card round sums to zero');
+
+  // 10-card payout: P1=3, P2=10 → diff=7, multiplier=2×, transfer=7×1×2=14
+  const r10 = computeRoundScores([{playerId:1,cards:3},{playerId:2,cards:10}], 1);
+  assert(r10.find(p=>p.playerId===2).score === -14,           '10-card payout = -14 (diff=7, 2x)');
+
+  // Special combo 3 players
+  const sc = computeSpecialScores([1,2,3], 1);
+  assert(sc.find(p=>p.playerId===1).score ===  6,             'special: winner gets +6');
+  assert(sc.find(p=>p.playerId===2).score === -3,             'special: loser pays -3');
+  assert(Math.abs(sc.reduce((s,p)=>s+p.score,0)) < 0.01,     'special combo sums to zero');
+})();
+
+// ════════════════════════════════════════════════════════════
+// UTILITIES
+// ════════════════════════════════════════════════════════════
+
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+
+function fmtMoney(v) {
+  if (v === 0) return '$0.00';
+  const abs = Math.abs(v).toFixed(2);
+  return v > 0 ? `+$${abs}` : `-$${abs}`;
+}
+
+function moneyClass(v) {
+  if (v > 0) return 'money-pos';
+  if (v < 0) return 'money-neg';
+  return 'money-zero';
+}
+
+// ════════════════════════════════════════════════════════════
+// PLAYER MANAGEMENT
+// ════════════════════════════════════════════════════════════
+
+function addPlayer() {
+  const name = `Player ${state.players.length + 1}`;
+  state.players.push({ id: _nextPlayerId++, name });
+  setPlayerError('');
+  render();
+}
+
+function removePlayer(id) {
+  if (state.players.length <= 2) {
+    setPlayerError('At least 2 players are required.');
+    return;
+  }
+  const inRound = state.rounds.some(r => r.participants.some(p => p.playerId === id));
+  if (inRound) {
+    setPlayerError('Cannot remove a player who has participated in a round.');
+    return;
+  }
+  state.players = state.players.filter(p => p.id !== id);
+  setPlayerError('');
+  render();
+}
+
+function renamePlayer(id, newName) {
+  const player = state.players.find(p => p.id === id);
+  if (player && newName.trim()) player.name = newName.trim();
+  render();
+}
+
+function setPlayerError(msg) {
+  document.getElementById('player-error').textContent = msg;
+}
+
+function renderPlayerManagement() {
+  document.getElementById('player-list').innerHTML = state.players.map(p => `
+    <div class="player-row">
+      <input type="text" value="${escHtml(p.name)}"
+        onblur="renamePlayer(${p.id}, this.value)"
+        onkeydown="if(event.key==='Enter')this.blur()"
+        aria-label="Player name">
+      <button class="btn btn-danger btn-sm" onclick="removePlayer(${p.id})">Remove</button>
+    </div>
+  `).join('');
+}
+
+// ════════════════════════════════════════════════════════════
+// ROUND ENTRY
+// ════════════════════════════════════════════════════════════
+
+function renderRoundEntry() {
+  document.getElementById('entry-player-grid').innerHTML = state.players.map(p => `
+    <div class="player-entry">
+      <label>
+        <input type="checkbox" id="cb-${p.id}" checked>
+        ${escHtml(p.name)}
+      </label>
+      <input type="number" id="cards-${p.id}" value="0" min="0" max="13" step="1"
+             placeholder="Cards (0–13)">
+    </div>
+  `).join('');
+}
+
+function getActiveFromEntry() {
+  return state.players
+    .filter(p => document.getElementById(`cb-${p.id}`)?.checked)
+    .map(p => ({
+      playerId: p.id,
+      cards: parseInt(document.getElementById(`cards-${p.id}`).value, 10) || 0
+    }));
+}
+
+function setEntryError(msg) {
+  document.getElementById('entry-error').textContent = msg;
+}
+
+function addRound() {
+  const active = getActiveFromEntry();
+  if (active.length < 2 || active.length > 4) {
+    setEntryError('Select between 2 and 4 active players per round.');
+    return;
+  }
+  for (const p of active) {
+    if (!Number.isInteger(p.cards) || p.cards < 0 || p.cards > 13) {
+      setEntryError('Card counts must be whole numbers between 0 and 13.');
+      return;
+    }
+  }
+  setEntryError('');
+
+  const price = parseFloat(document.getElementById('price-input').value) || 1;
+  const participants = computeRoundScores(active, price);
+
+  state.rounds.push({ id: _nextRoundId++, type: 'normal', pricePerCard: price, participants });
+
+  // Reset card inputs
+  state.players.forEach(p => {
+    const el = document.getElementById(`cards-${p.id}`);
+    if (el) el.value = 0;
+  });
+
+  render();
+}
+
+// ════════════════════════════════════════════════════════════
+// SPECIAL COMBO
+// ════════════════════════════════════════════════════════════
+
+let _specialActivePlayers = [];
+
+function openSpecialCombo() {
+  const active = getActiveFromEntry();
+  if (active.length < 2 || active.length > 4) {
+    setEntryError('Select between 2 and 4 active players for a special combo.');
+    return;
+  }
+  setEntryError('');
+  _specialActivePlayers = active.map(a => a.playerId);
+
+  const sel = document.getElementById('special-winner-select');
+  sel.innerHTML = _specialActivePlayers.map(id => {
+    const player = state.players.find(p => p.id === id);
+    return `<option value="${id}">${escHtml(player ? player.name : String(id))}</option>`;
+  }).join('');
+
+  document.getElementById('special-modal').showModal();
+}
+
+function confirmSpecialCombo() {
+  const winnerId = parseInt(document.getElementById('special-winner-select').value, 10);
+  const participants = computeSpecialScores(_specialActivePlayers, winnerId);
+  state.rounds.push({ id: _nextRoundId++, type: 'special', pricePerCard: null, participants, winnerId });
+  document.getElementById('special-modal').close();
+  render();
+}
+
+// ════════════════════════════════════════════════════════════
+// GAME RESULTS TABLE
+// ════════════════════════════════════════════════════════════
+
+function renderResultsTable() {
+  const table   = document.getElementById('results-table');
+  const noRounds= document.getElementById('no-rounds');
+  const thead   = document.getElementById('results-thead');
+  const tbody   = document.getElementById('results-tbody');
+
+  if (state.rounds.length === 0) {
+    table.style.display = 'none';
+    noRounds.style.display = '';
+    return;
+  }
+  table.style.display = '';
+  noRounds.style.display = 'none';
+
+  // Header
+  thead.innerHTML = `<tr>
+    <th class="round-label">Round</th>
+    ${state.players.map(p => `<th>${escHtml(p.name)}</th>`).join('')}
+    <th>Balance Check</th>
+    <th>Actions</th>
+  </tr>`;
+
+  // Compute running totals for footer
+  const totals = {};
+  state.players.forEach(p => { totals[p.id] = 0; });
+
+  // Data rows
+  tbody.innerHTML = state.rounds.map((round, idx) => {
+    const isSpecial = round.type === 'special';
+    const num = idx + 1;
+
+    // Accumulate totals
+    round.participants.forEach(part => {
+      if (totals[part.playerId] !== undefined)
+        totals[part.playerId] = r2(totals[part.playerId] + part.score);
+    });
+
+    // Round label
+    let roundLabel = `<span class="main-label">Round ${num}</span>`;
+    if (isSpecial) {
+      const wName = state.players.find(p => p.id === round.winnerId)?.name ?? 'Unknown';
+      roundLabel += `<br><span class="sub-label">Special Combo — ${escHtml(wName)}</span>`;
+    } else if (round.pricePerCard !== 1) {
+      roundLabel += `<br><span class="sub-label">$${round.pricePerCard}/card</span>`;
+    }
+
+    // Player cells
+    const playerCells = state.players.map(player => {
+      const part = round.participants.find(p => p.playerId === player.id);
+      if (!part) return `<td class="inactive-cell">—</td>`;
+      if (isSpecial) {
+        const isWinner = player.id === round.winnerId;
+        return `<td class="${isWinner ? 'winner-cell' : ''}">
+          ${isWinner ? '<div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.04em">Winner</div>' : ''}
+          <div class="${moneyClass(part.score)}">${fmtMoney(part.score)}</div>
+        </td>`;
+      }
+      return `<td>
+        <div class="cards-line">${part.cards} card${part.cards !== 1 ? 's' : ''}</div>
+        <div class="money-line ${moneyClass(part.score)}">${fmtMoney(part.score)}</div>
+      </td>`;
+    }).join('');
+
+    // Balance check
+    const sum = r2(round.participants.reduce((s, p) => s + p.score, 0));
+    const balanceCell = Math.abs(sum) < 0.01
+      ? `<td class="balance-ok">✓ Balanced</td>`
+      : `<td class="balance-err">Error: ${fmtMoney(sum)}</td>`;
+
+    // Actions
+    const editBtn   = isSpecial ? '' : `<button class="btn btn-ghost btn-sm" onclick="openEditModal(${round.id})">Edit</button>`;
+    const deleteBtn = `<button class="btn btn-danger btn-sm" onclick="deleteRound(${round.id})">Delete</button>`;
+
+    return `<tr>
+      <td class="round-label">${roundLabel}</td>
+      ${playerCells}
+      ${balanceCell}
+      <td><div class="row-actions">${editBtn}${deleteBtn}</div></td>
+    </tr>`;
+  }).join('');
+
+  // Totals footer row
+  const totalCells = state.players.map(p => {
+    const v = totals[p.id] ?? 0;
+    return `<td class="${moneyClass(v)}" style="font-weight:600">${fmtMoney(v)}</td>`;
+  }).join('');
+  tbody.innerHTML += `<tr class="totals-row">
+    <td class="round-label" style="text-align:left;font-weight:700">Total</td>
+    ${totalCells}
+    <td></td>
+    <td></td>
+  </tr>`;
+}
+
+function deleteRound(id) {
+  if (!confirm('Delete this round?')) return;
+  state.rounds = state.rounds.filter(r => r.id !== id);
+  render();
+}
+
+// ════════════════════════════════════════════════════════════
+// EDIT ROUND MODAL
+// ════════════════════════════════════════════════════════════
+
+let _editingRoundId = null;
+
+function openEditModal(roundId) {
+  const round = state.rounds.find(r => r.id === roundId);
+  if (!round || round.type === 'special') return;
+  _editingRoundId = roundId;
+
+  document.getElementById('edit-price-input').value = round.pricePerCard;
+  document.getElementById('edit-error').textContent = '';
+
+  document.getElementById('edit-player-grid').innerHTML = state.players.map(p => {
+    const part    = round.participants.find(pp => pp.playerId === p.id);
+    const isActive= !!part;
+    const cards   = part ? part.cards : 0;
+    return `<div class="edit-player-row">
+      <label>
+        <input type="checkbox" id="edit-cb-${p.id}" ${isActive ? 'checked' : ''}>
+        ${escHtml(p.name)}
+      </label>
+      <input type="number" id="edit-cards-${p.id}" value="${cards}" min="0" max="13" step="1">
+    </div>`;
+  }).join('');
+
+  document.getElementById('edit-modal').showModal();
+}
+
+function closeEditModal() {
+  _editingRoundId = null;
+  document.getElementById('edit-modal').close();
+}
+
+function saveEdit() {
+  const round = state.rounds.find(r => r.id === _editingRoundId);
+  if (!round) return;
+
+  const price  = parseFloat(document.getElementById('edit-price-input').value) || 1;
+  const active = state.players
+    .filter(p => document.getElementById(`edit-cb-${p.id}`)?.checked)
+    .map(p => ({
+      playerId: p.id,
+      cards: parseInt(document.getElementById(`edit-cards-${p.id}`).value, 10) || 0
+    }));
+
+  if (active.length < 2 || active.length > 4) {
+    document.getElementById('edit-error').textContent = 'Select 2–4 active players.';
+    return;
+  }
+  for (const p of active) {
+    if (!Number.isInteger(p.cards) || p.cards < 0 || p.cards > 13) {
+      document.getElementById('edit-error').textContent = 'Card counts must be whole numbers between 0 and 13.';
+      return;
+    }
+  }
+
+  round.pricePerCard  = price;
+  round.participants  = computeRoundScores(active, price);
+  closeEditModal();
+  render();
+}
+
+// ════════════════════════════════════════════════════════════
+// SUMMARY
+// ════════════════════════════════════════════════════════════
 
 function computeTotals() {
   const totals = {};
   state.players.forEach(p => { totals[p.id] = 0; });
-  state.rounds.forEach(r => {
-    Object.entries(r.playerData).forEach(([pid, d]) => {
-      if (totals[pid] !== undefined) totals[pid] += d.score;
-    });
-  });
+  state.rounds.forEach(round =>
+    round.participants.forEach(part => {
+      if (totals[part.playerId] !== undefined)
+        totals[part.playerId] = r2(totals[part.playerId] + part.score);
+    })
+  );
   return totals;
 }
 
-// =========================================================
-// UTILS
-// =========================================================
-function esc(s) {
-  return String(s)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
-
-function fmt(val) {
-  const abs = Math.abs(val);
-  const s = '$' + abs.toFixed(2);
-  if (val > 0.005) return '+' + s;
-  if (val < -0.005) return '\u2212' + s;
-  return s;
-}
-
-function moneyClass(val) {
-  if (val > 0.005) return 'pos';
-  if (val < -0.005) return 'neg';
-  return 'zero';
-}
-
-function setError(id, msg) {
-  const el = document.getElementById(id);
-  if (el) el.textContent = msg || '';
-}
-
-function getActiveChecked() {
-  return Array.from(document.querySelectorAll('.entry-cb:checked')).map(c => c.dataset.pid);
-}
-
-// =========================================================
-// RENDER — PLAYER LIST
-// =========================================================
-function renderPlayerList() {
-  const container = document.getElementById('player-list');
-  container.innerHTML = state.players.map(p => `
-    <div class="player-row">
-      <input type="text" class="player-name-input" value="${esc(p.name)}"
-             data-pid="${p.id}" aria-label="Player name">
-      <button class="btn-remove" data-pid="${p.id}"
-              ${state.players.length <= 2 ? 'disabled' : ''} title="Remove player">✕</button>
-    </div>
-  `).join('');
-
-  container.querySelectorAll('.player-name-input').forEach(inp => {
-    inp.addEventListener('change', e => {
-      const pid = e.target.dataset.pid;
-      const player = state.players.find(p => p.id === pid);
-      if (player) {
-        player.name = e.target.value.trim() || player.name;
-        renderEntry();
-        renderResults();
-        renderSummary();
-      }
-    });
-  });
-
-  container.querySelectorAll('.btn-remove').forEach(btn => {
-    btn.addEventListener('click', e => {
-      const pid = e.target.dataset.pid;
-      if (state.players.length <= 2) return;
-      state.players = state.players.filter(p => p.id !== pid);
-      render();
-    });
-  });
-}
-
-// =========================================================
-// RENDER — ROUND ENTRY
-// =========================================================
-function saveEntryState() {
-  const saved = {};
-  document.querySelectorAll('.entry-cb').forEach(cb => {
-    const pid = cb.dataset.pid;
-    const inp = document.querySelector(`.entry-cards[data-pid="${pid}"]`);
-    saved[pid] = { checked: cb.checked, cards: inp ? inp.value : '0' };
-  });
-  return saved;
-}
-
-function renderEntry(resetCards) {
-  const container = document.getElementById('entry-players');
-  const saved = resetCards ? null : saveEntryState();
-
-  container.innerHTML = state.players.map(p => `
-    <div class="entry-player-row">
-      <label class="cb-label">
-        <input type="checkbox" class="entry-cb" data-pid="${p.id}" checked>
-        <span>${esc(p.name)}</span>
-      </label>
-      <input type="number" class="num-input entry-cards" data-pid="${p.id}"
-             min="0" max="13" value="0">
-    </div>
-  `).join('');
-
-  // Restore saved state
-  if (saved) {
-    container.querySelectorAll('.entry-cb').forEach(cb => {
-      const pid = cb.dataset.pid;
-      const inp = container.querySelector(`.entry-cards[data-pid="${pid}"]`);
-      if (saved[pid]) {
-        cb.checked = saved[pid].checked;
-        if (inp) { inp.value = saved[pid].cards; inp.disabled = !saved[pid].checked; }
-      }
-    });
-  } else {
-    // Apply disabled state to start
-    container.querySelectorAll('.entry-cb').forEach(cb => {
-      const inp = container.querySelector(`.entry-cards[data-pid="${cb.dataset.pid}"]`);
-      if (inp) inp.disabled = !cb.checked;
-    });
-  }
-
-  // Wire checkbox toggle
-  container.querySelectorAll('.entry-cb').forEach(cb => {
-    cb.addEventListener('change', () => {
-      const inp = container.querySelector(`.entry-cards[data-pid="${cb.dataset.pid}"]`);
-      if (inp) { inp.disabled = !cb.checked; if (!cb.checked) inp.value = '0'; }
-    });
-  });
-}
-
-// =========================================================
-// RENDER — RESULTS TABLE
-// =========================================================
-function renderResults() {
-  const container = document.getElementById('results-container');
-  if (state.rounds.length === 0) {
-    container.innerHTML = '<p class="empty-state">No rounds yet. Add a round to get started.</p>';
-    return;
-  }
-
-  let html = '<div class="table-scroll"><table class="results-table"><thead><tr>';
-  html += '<th>Round</th>';
-  state.players.forEach(p => { html += `<th>${esc(p.name)}</th>`; });
-  html += '<th>Balance</th><th>Actions</th>';
-  html += '</tr></thead><tbody>';
-
-  state.rounds.forEach(round => {
-    html += `<tr>`;
-
-    // Round label cell
-    if (round.type === 'normal') {
-      const priceTag = round.pricePerCard !== 1
-        ? `<span class="price-tag">$${round.pricePerCard}/card</span>` : '';
-      html += `<td class="round-cell"><span class="round-num">Round ${round.roundNum}</span>${priceTag}</td>`;
-    } else {
-      const winner = state.players.find(p => p.id === round.winnerPlayerId);
-      const wName = winner ? winner.name : '(removed)';
-      html += `<td class="round-cell">
-        <span class="round-num">Round ${round.roundNum}</span>
-        <span class="special-tag">Special Combo</span>
-        <span class="winner-tag">🏆 ${esc(wName)}</span>
-      </td>`;
-    }
-
-    // Player cells
-    state.players.forEach(p => {
-      const d = round.playerData[p.id];
-      if (!d || !d.active) {
-        html += `<td class="inactive-cell">—</td>`;
-      } else if (round.type === 'normal') {
-        html += `<td class="player-cell">
-          <span class="card-lbl">${d.cards} cards</span>
-          <span class="money ${moneyClass(d.score)}">${fmt(d.score)}</span>
-        </td>`;
-      } else {
-        const isWinner = round.winnerPlayerId === p.id;
-        html += `<td class="player-cell${isWinner ? ' winner-cell' : ''}">
-          ${isWinner ? '<span class="winner-badge">Winner</span>' : ''}
-          <span class="money ${moneyClass(d.score)}">${fmt(d.score)}</span>
-        </td>`;
-      }
-    });
-
-    // Balance check — sum ALL stored playerData (includes removed players)
-    const sum = Object.values(round.playerData).reduce((a, d) => a + d.score, 0);
-    if (Math.abs(sum) < 0.001) {
-      html += `<td class="bal-ok">✓ Balanced</td>`;
-    } else {
-      html += `<td class="bal-err">Error: ${fmt(sum)}</td>`;
-    }
-
-    // Action buttons
-    html += `<td class="act-cell">
-      ${round.type === 'normal'
-        ? `<button class="btn-act btn-edit" data-rid="${round.id}" title="Edit">✎</button>`
-        : ''}
-      <button class="btn-act btn-del" data-rid="${round.id}" title="Delete">🗑</button>
-    </td>`;
-
-    html += '</tr>';
-  });
-
-  html += '</tbody></table></div>';
-  container.innerHTML = html;
-
-  container.querySelectorAll('.btn-edit').forEach(btn => {
-    btn.addEventListener('click', () => openEditModal(btn.dataset.rid));
-  });
-  container.querySelectorAll('.btn-del').forEach(btn => {
-    btn.addEventListener('click', () => deleteRound(btn.dataset.rid));
-  });
-}
-
-// =========================================================
-// RENDER — SUMMARY
-// =========================================================
 function renderSummary() {
-  const totals = computeTotals();
-  document.getElementById('sum-rounds').textContent = state.rounds.length;
+  const totals  = computeTotals();
+  const entries = state.players.map(p => ({ player: p, total: totals[p.id] ?? 0 }));
+  const total   = state.rounds.length;
 
-  if (state.rounds.length === 0) {
-    document.getElementById('sum-winner').textContent = '—';
-    document.getElementById('sum-loser').textContent = '—';
-    return;
+  let winnerHtml = '<div class="stat-value" style="color:var(--muted)">—</div>';
+  let loserHtml  = '<div class="stat-value" style="color:var(--muted)">—</div>';
+
+  if (total > 0 && entries.length > 0) {
+    const sorted = [...entries].sort((a, b) => b.total - a.total);
+    const best   = sorted[0];
+    const worst  = sorted[sorted.length - 1];
+    winnerHtml = `<div class="stat-value pos">${escHtml(best.player.name)}<br><small>${fmtMoney(best.total)}</small></div>`;
+    loserHtml  = `<div class="stat-value neg">${escHtml(worst.player.name)}<br><small>${fmtMoney(worst.total)}</small></div>`;
   }
 
-  const sorted = state.players.slice().sort((a, b) => (totals[b.id] || 0) - (totals[a.id] || 0));
-  const best = sorted[0], worst = sorted[sorted.length - 1];
-  document.getElementById('sum-winner').textContent = `${best.name} (${fmt(totals[best.id])})`;
-  document.getElementById('sum-loser').textContent = `${worst.name} (${fmt(totals[worst.id])})`;
-}
-
-// =========================================================
-// FULL RENDER
-// =========================================================
-function render() {
-  renderPlayerList();
-  renderEntry();
-  renderResults();
-  renderSummary();
-}
-
-// =========================================================
-// ADD ROUND
-// =========================================================
-function addRound() {
-  setError('entry-error', '');
-  const price = parseFloat(document.getElementById('price-per-card').value);
-  if (isNaN(price) || price < 0.1) { setError('entry-error', 'Price per card must be ≥ 0.1.'); return; }
-
-  const activePids = getActiveChecked();
-  if (activePids.length < 2) { setError('entry-error', 'Select at least 2 active players.'); return; }
-  if (activePids.length > 4) { setError('entry-error', 'Select at most 4 active players.'); return; }
-
-  const cardCounts = {};
-  for (const pid of activePids) {
-    const inp = document.querySelector(`.entry-cards[data-pid="${pid}"]`);
-    const val = parseInt(inp.value, 10);
-    if (isNaN(val) || val < 0 || val > 13) {
-      setError('entry-error', 'Card counts must be between 0 and 13.');
-      return;
-    }
-    cardCounts[pid] = val;
-  }
-
-  const activePlayers = activePids.map(pid => state.players.find(p => p.id === pid));
-  const scores = computeScores(activePlayers, cardCounts, price);
-
-  const playerData = {};
-  state.players.forEach(p => {
-    const active = activePids.includes(p.id);
-    playerData[p.id] = { active, cards: active ? cardCounts[p.id] : 0, score: active ? scores[p.id] : 0 };
-  });
-
-  state.rounds.push({
-    id: 'r' + Date.now() + Math.random(),
-    type: 'normal',
-    roundNum: _nextRoundNum++,
-    pricePerCard: price,
-    playerData,
-  });
-
-  renderEntry(true); // reset card inputs
-  renderResults();
-  renderSummary();
-}
-
-// =========================================================
-// ADD SPECIAL COMBO
-// =========================================================
-function openSpecialCombo() {
-  setError('entry-error', '');
-  const activePids = getActiveChecked();
-  if (activePids.length < 2) { setError('entry-error', 'Select at least 2 active players.'); return; }
-  if (activePids.length > 4) { setError('entry-error', 'Select at most 4 active players.'); return; }
-
-  _pendingComboActive = activePids;
-  const sel = document.getElementById('combo-winner');
-  sel.innerHTML = activePids.map(pid => {
-    const p = state.players.find(p => p.id === pid);
-    return `<option value="${pid}">${esc(p.name)}</option>`;
-  }).join('');
-
-  document.getElementById('combo-overlay').classList.remove('hidden');
-}
-
-function confirmSpecialCombo() {
-  const activePids = _pendingComboActive;
-  const winnerPid = document.getElementById('combo-winner').value;
-  const otherPids = activePids.filter(pid => pid !== winnerPid);
-  const winnerScore = 3 * otherPids.length;
-
-  const playerData = {};
-  state.players.forEach(p => {
-    const active = activePids.includes(p.id);
-    let score = 0;
-    if (active) score = p.id === winnerPid ? winnerScore : -3;
-    playerData[p.id] = { active, score };
-  });
-
-  state.rounds.push({
-    id: 'r' + Date.now() + Math.random(),
-    type: 'special',
-    roundNum: _nextRoundNum++,
-    winnerPlayerId: winnerPid,
-    playerData,
-  });
-
-  document.getElementById('combo-overlay').classList.add('hidden');
-  renderResults();
-  renderSummary();
-}
-
-// =========================================================
-// EDIT ROUND MODAL
-// =========================================================
-function openEditModal(roundId) {
-  const round = state.rounds.find(r => r.id === roundId);
-  if (!round || round.type !== 'normal') return;
-
-  const overlay = document.getElementById('edit-overlay');
-  overlay.dataset.rid = roundId;
-  setError('edit-error', '');
-
-  const body = document.getElementById('edit-body');
-  body.innerHTML = `
-    <div class="fgroup">
-      <label>Price per Card ($)</label>
-      <input type="number" id="edit-price" min="0.1" step="0.1" value="${round.pricePerCard}">
+  document.getElementById('summary-grid').innerHTML = `
+    <div class="stat-card">
+      <div class="stat-label">Total Rounds</div>
+      <div class="stat-value">${total}</div>
     </div>
-    <div>
-      ${state.players.map(p => {
-        const d = round.playerData[p.id] || { active: false, cards: 0 };
-        return `
-          <div class="entry-player-row">
-            <label class="cb-label">
-              <input type="checkbox" class="edit-cb" data-pid="${p.id}" ${d.active ? 'checked' : ''}>
-              <span>${esc(p.name)}</span>
-            </label>
-            <input type="number" class="num-input edit-cards" data-pid="${p.id}"
-                   min="0" max="13" value="${d.cards || 0}" ${!d.active ? 'disabled' : ''}>
-          </div>
-        `;
-      }).join('')}
+    <div class="stat-card">
+      <div class="stat-label">Biggest Winner</div>
+      ${winnerHtml}
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Biggest Loser</div>
+      ${loserHtml}
     </div>
   `;
-
-  body.querySelectorAll('.edit-cb').forEach(cb => {
-    cb.addEventListener('change', () => {
-      const inp = body.querySelector(`.edit-cards[data-pid="${cb.dataset.pid}"]`);
-      if (inp) { inp.disabled = !cb.checked; if (!cb.checked) inp.value = '0'; }
-    });
-  });
-
-  overlay.classList.remove('hidden');
 }
 
-function saveEditRound() {
-  const overlay = document.getElementById('edit-overlay');
-  const roundId = overlay.dataset.rid;
-  const round = state.rounds.find(r => r.id === roundId);
-  if (!round) return;
-
-  setError('edit-error', '');
-  const body = document.getElementById('edit-body');
-  const price = parseFloat(document.getElementById('edit-price').value);
-  if (isNaN(price) || price < 0.1) { setError('edit-error', 'Price per card must be ≥ 0.1.'); return; }
-
-  const activePids = Array.from(body.querySelectorAll('.edit-cb:checked')).map(c => c.dataset.pid);
-  if (activePids.length < 2) { setError('edit-error', 'Select at least 2 players.'); return; }
-  if (activePids.length > 4) { setError('edit-error', 'Select at most 4 players.'); return; }
-
-  const cardCounts = {};
-  for (const pid of activePids) {
-    const inp = body.querySelector(`.edit-cards[data-pid="${pid}"]`);
-    const val = parseInt(inp.value, 10);
-    if (isNaN(val) || val < 0 || val > 13) { setError('edit-error', 'Card counts must be 0–13.'); return; }
-    cardCounts[pid] = val;
-  }
-
-  const activePlayers = activePids.map(pid => state.players.find(p => p.id === pid));
-  const scores = computeScores(activePlayers, cardCounts, price);
-
-  round.pricePerCard = price;
-  state.players.forEach(p => {
-    const active = activePids.includes(p.id);
-    round.playerData[p.id] = { active, cards: active ? cardCounts[p.id] : 0, score: active ? scores[p.id] : 0 };
-  });
-
-  overlay.classList.add('hidden');
-  renderResults();
-  renderSummary();
-}
-
-// =========================================================
-// DELETE ROUND
-// =========================================================
-function deleteRound(roundId) {
-  if (!confirm('Delete this round?')) return;
-  state.rounds = state.rounds.filter(r => r.id !== roundId);
-  state.rounds.forEach((r, i) => { r.roundNum = i + 1; });
-  _nextRoundNum = state.rounds.length + 1;
-  renderResults();
-  renderSummary();
-}
-
-// =========================================================
-// RESET GAME
-// =========================================================
 function resetGame() {
-  if (!confirm('Reset all rounds? Player names will be kept.')) return;
+  if (!confirm('Reset game? All rounds will be cleared. Players will stay.')) return;
   state.rounds = [];
-  _nextRoundNum = 1;
-  renderResults();
+  _nextRoundId  = 1;
+  render();
+}
+
+// ════════════════════════════════════════════════════════════
+// RENDER DISPATCHER
+// ════════════════════════════════════════════════════════════
+
+function render() {
+  renderPlayerManagement();
+  renderRoundEntry();
+  renderResultsTable();
   renderSummary();
 }
 
-// =========================================================
+// ════════════════════════════════════════════════════════════
+// MODAL: close on backdrop click
+// ════════════════════════════════════════════════════════════
+
+document.querySelectorAll('dialog').forEach(dlg => {
+  dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });
+});
+
+// ════════════════════════════════════════════════════════════
 // INIT
-// =========================================================
-document.getElementById('btn-add-player').addEventListener('click', () => {
-  const id = 'p' + _nextPid;
-  const name = 'Player ' + _nextPid;
-  _nextPid++;
-  state.players.push({ id, name });
-  render();
-});
-
-document.getElementById('btn-add-round').addEventListener('click', addRound);
-document.getElementById('btn-add-special').addEventListener('click', openSpecialCombo);
-document.getElementById('btn-reset').addEventListener('click', resetGame);
-
-document.getElementById('edit-cancel').addEventListener('click', () => {
-  document.getElementById('edit-overlay').classList.add('hidden');
-});
-document.getElementById('edit-save').addEventListener('click', saveEditRound);
-
-document.getElementById('combo-cancel').addEventListener('click', () => {
-  document.getElementById('combo-overlay').classList.add('hidden');
-});
-document.getElementById('combo-confirm').addEventListener('click', confirmSpecialCombo);
-
-// Close modals on backdrop click
-['edit-overlay', 'combo-overlay'].forEach(id => {
-  document.getElementById(id).addEventListener('click', e => {
-    if (e.target === e.currentTarget) e.currentTarget.classList.add('hidden');
-  });
-});
+// ════════════════════════════════════════════════════════════
 
 render();
 </script>

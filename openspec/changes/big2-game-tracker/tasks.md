@@ -1,74 +1,69 @@
-## 1. Project Scaffold
+## 1. HTML Skeleton & CSS Foundation
 
-- [ ] 1.1 Create `index.html` with full HTML5 boilerplate (doctype, head, meta viewport, title)
-- [ ] 1.2 Add CSS reset and CSS custom properties (color palette: green, red, accent, muted)
-- [ ] 1.3 Define responsive layout skeleton: header, two-column panel (round entry + player list), results section, summary section
+- [x] 1.1 Create `big2-tracker.html` with DOCTYPE, `<head>` (meta charset, viewport, title), empty `<style>` and `<script>` blocks
+- [x] 1.2 Write CSS custom properties (colour tokens: green, red, accent, muted, neutral, surface, border)
+- [x] 1.3 Write base CSS: reset, body font, layout containers (header, main sections, footer)
+- [x] 1.4 Write responsive CSS: flexbox/grid for section layout; `overflow-x: auto` table wrapper for mobile
 
-## 2. State Model
+## 2. State Model & Core Data Structures
 
-- [ ] 2.1 Define JS `state` object: `{ players: [], rounds: [], nextRoundNumber: 1 }`
-- [ ] 2.2 Initialize state with 4 default players (id, name, total)
-- [ ] 2.3 Implement `render()` dispatcher that re-renders player list, round-entry grid, results table, and summary after every mutation
+- [x] 2.1 Define JS `state` object: `{ players: [{id, name}], rounds: [] }`
+- [x] 2.2 Define round shape for normal rounds: `{ id, type:'normal', pricePerCard, participants:[{playerId, cards, score}] }`
+- [x] 2.3 Define round shape for special-combo rounds: `{ id, type:'special', participants:[{playerId, score}], winnerId }`
+- [x] 2.4 Write `render()` dispatcher that calls all section renderers on every state mutation
 
-## 3. Player Management
+## 3. Player Management Section
 
-- [ ] 3.1 Render player list with inline rename input and remove button per player
-- [ ] 3.2 Implement "Add Player" button — appends new player, calls render()
-- [ ] 3.3 Implement remove player — blocks if ≤ 2 players remain, else removes and calls render()
-- [ ] 3.4 Implement rename player — updates player name in state and re-renders everywhere (table headers, entry labels, summary)
+- [x] 3.1 Build `renderPlayerManagement()`: outputs player list with name `<input>` and remove button per player, plus "Add Player" button
+- [x] 3.2 Implement "Add Player": appends new player with default name, calls `render()`
+- [x] 3.3 Implement rename: on `input` blur/Enter update player name in state, call `render()`
+- [x] 3.4 Implement remove player: validate ≥2 players and no round participation; show inline error or remove + `render()`
 
-## 4. Round Entry UI
+## 4. Round Entry Section
 
-- [ ] 4.1 Render Round Entry section: price-per-card input (min 0.1, step 0.1, default 1)
-- [ ] 4.2 Render player grid: checkbox (active) + card count input (0–13) per player
-- [ ] 4.3 Wire active-player checkboxes to enable/disable corresponding card count inputs
+- [x] 4.1 Build `renderRoundEntry()`: outputs price-per-card input, player grid (checkbox + card-count input per player), "Add Round" and "Add Special Combo" buttons
+- [x] 4.2 Implement "Add Round" click: collect active players, validate count (2–4) and card counts (0–13), call scoring engine, push round to state, reset inputs, `render()`
+- [x] 4.3 Implement inline validation error display for round entry (player count and card count errors)
 
 ## 5. Scoring Engine
 
-- [ ] 5.1 Implement `computeRoundScores(activePlayers, cardCounts, pricePerCard)` — pairwise loop, multiplier logic, divide-by-2 balancing
-- [ ] 5.2 Write unit-style inline tests (console.assert) to verify: 2-player, 4-player, 13-card (3×), 10-card (2×) cases
-- [ ] 5.3 Implement `validateRoundBalance(scores)` — returns true if |sum| < 0.001
+- [x] 5.1 Write `getMultiplier(cards)`: returns 3 for 13, 2 for 10–12, 1 otherwise
+- [x] 5.2 Write `computeRoundScores(participants, pricePerCard)`: iterate all pairs, compute raw transfers, sum per player, halve all, round to 2 dp; return `[{playerId, score}]`
+- [x] 5.3 Write unit-style inline tests (console assertions) to verify: 2-player round sums to zero, 3-player round sums to zero, multipliers correct at 9/10/13 cards
 
-## 6. Add Round
+## 6. Special Combo Flow
 
-- [ ] 6.1 Implement "Add Round" button handler — validate active player count (2–4), validate card counts (0–13), call scoring engine, push round to state, re-render, reset inputs to 0
-- [ ] 6.2 Show inline error messages for validation failures (active count, card count range)
+- [x] 6.1 Implement "Add Special Combo" click: validate active player count (2–4), open winner-selection modal
+- [x] 6.2 Build winner-selection `<dialog>`: `<select>` of active player names, Confirm and Cancel buttons
+- [x] 6.3 On Confirm: compute special combo scores ($3 per loser, winner gets 3×losers), push round to state, close modal, `render()`
 
-## 7. Special Combo
+## 7. Game Results Table
 
-- [ ] 7.1 Render "Add Special Combo" button and inline winner-selection `<select>` (populated from active players)
-- [ ] 7.2 Implement special combo handler — validate active count (2–4), compute scores (non-winners: −$3, winner: +$3 × others), push round to state, re-render
-- [ ] 7.3 Show error if active player count is invalid for special combo
+- [x] 7.1 Build `renderResultsTable()`: construct `<table>` with header row (Round, one th per player, Balance Check)
+- [x] 7.2 Render normal round rows: Round cell with label and optional price annotation; per-player cells with "X cards" + coloured money amount or "-"; Balance Check cell
+- [x] 7.3 Render special combo round rows: Round cell with "Special Combo" + winner name; per-player cells with money only; winner cell highlighted with "Winner" label
+- [x] 7.4 Implement Balance Check cell logic: sum scores, compare to 0.01 threshold, render "✓ Balanced" or "Error: $X.XX"
+- [x] 7.5 Add delete button to each row: on click remove round from state, `render()`
+- [x] 7.6 Add edit button to normal round rows only (no edit on special combo)
 
-## 8. Game Results Table
+## 8. Round Editing Modal
 
-- [ ] 8.1 Render table with dynamic columns (Round + one per player + Balance Check)
-- [ ] 8.2 Render normal round rows: Round cell (label + price tag if ≠ $1), active player cells (cards + money, color-coded), inactive player cells ("−"), Balance Check cell
-- [ ] 8.3 Render special combo round rows: Round cell (Special Combo label + winner name), player cells (money only, winner highlighted), Balance Check cell
-- [ ] 8.4 Make table container horizontally scrollable (`overflow-x: auto`)
+- [x] 8.1 Build edit `<dialog>`: pre-populate with round's pricePerCard, active-player checkboxes, card-count inputs
+- [x] 8.2 On Save: validate inputs (2–4 active, card counts 0–13); show inline modal errors on failure
+- [x] 8.3 On Save success: update round in state with new values, recompute scores via scoring engine, call `render()`
+- [x] 8.4 On Cancel: close modal with no state changes
 
-## 9. Round Editing
+## 9. Summary Section
 
-- [ ] 9.1 Add edit button to each normal round row (no edit button for special combo rows)
-- [ ] 9.2 Build edit modal HTML: active-player checkboxes + card count inputs, pre-populated from round data
-- [ ] 9.3 Implement modal open/close logic (show/hide, populate fields)
-- [ ] 9.4 Implement modal save — validate active count (2–4) and card counts (0–13), recompute scores, update round in state, re-render
+- [x] 9.1 Build `renderSummary()`: compute cumulative per-player totals from all rounds; find biggest winner and biggest loser
+- [x] 9.2 Render "Total Rounds" card (count of all rounds)
+- [x] 9.3 Render "Biggest Winner" card (name + "+$X.XX") and "Biggest Loser" card (name + "-$X.XX"); show "-" when no rounds
+- [x] 9.4 Implement "Reset Game" button: on click (with confirmation), clear `state.rounds`, `render()`
 
-## 10. Round Deletion
+## 10. Styling Polish & UX
 
-- [ ] 10.1 Add delete button to every round row
-- [ ] 10.2 Implement delete handler — remove round from state, recalculate sequential round numbers, update player totals, re-render
-
-## 11. Session Summary
-
-- [ ] 11.1 Render summary cards below table: Total Rounds, Biggest Winner (name + amount), Biggest Loser (name + amount)
-- [ ] 11.2 Compute cumulative player totals from all rounds on every render
-- [ ] 11.3 Implement "Reset Game" button — confirm prompt, clear rounds, zero player totals, re-render
-
-## 12. Polish & Responsive Styling
-
-- [ ] 12.1 Apply color coding: positive amounts green, negative red, zero neutral; special-combo accent color
-- [ ] 12.2 Style summary cards, player list panel, and round-entry panel for desktop layout
-- [ ] 12.3 Add responsive breakpoints so layout stacks vertically on mobile
-- [ ] 12.4 Style edit modal overlay (backdrop, centered card, close button)
-- [ ] 12.5 Final pass: verify all edge cases (0-card winner, all same card count, single active pair)
+- [x] 10.1 Apply colour coding: green for positive amounts, red for negative, neutral for zero throughout table and summary
+- [x] 10.2 Style special-combo labels in primary accent colour; style winner cell highlight
+- [x] 10.3 Style modals (`<dialog>`): backdrop, padding, button layout, close on backdrop click
+- [x] 10.4 Ensure responsive layout: test at 375px width (mobile) and 1280px (desktop); confirm table scrolls horizontally
+- [x] 10.5 Final cross-browser check: open in Chrome, Firefox, Safari/Edge; verify no console errors
