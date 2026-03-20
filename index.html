@@ -35,6 +35,7 @@
       color:var(--neutral);
       min-height:100vh;
       line-height:1.5;
+      overflow-x:hidden;
     }
     input,select,textarea,button{font-family:inherit}
     /* Prevent iOS auto-zoom on input focus */
@@ -696,8 +697,8 @@ function renderRoundEntry() {
         <input type="checkbox" id="cb-${p.id}" checked>
         ${escHtml(p.name)}
       </label>
-      <input type="number" id="cards-${p.id}" value="0" min="0" max="13" step="1"
-             placeholder="Cards (0–13)">
+      <input type="number" id="cards-${p.id}" value="" min="0" max="13" step="1"
+             placeholder="0" inputmode="numeric" pattern="[0-9]*">
     </div>
   `).join('');
 }
@@ -737,7 +738,7 @@ function addRound() {
   // Reset card inputs
   state.players.forEach(p => {
     const el = document.getElementById(`cards-${p.id}`);
-    if (el) el.value = 0;
+    if (el) el.value = '';
   });
 
   render();
@@ -902,7 +903,7 @@ function openEditModal(roundId) {
         <input type="checkbox" id="edit-cb-${p.id}" ${isActive ? 'checked' : ''}>
         ${escHtml(p.name)}
       </label>
-      <input type="number" id="edit-cards-${p.id}" value="${cards}" min="0" max="13" step="1">
+      <input type="number" id="edit-cards-${p.id}" value="${cards}" min="0" max="13" step="1" inputmode="numeric" pattern="[0-9]*">
     </div>`;
   }).join('');
 
