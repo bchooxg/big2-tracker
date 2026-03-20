@@ -231,8 +231,8 @@
     }
 
     /* ── Results table ── */
-    .table-wrapper{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:var(--radius-sm);border:1px solid var(--border)}
-    table{width:100%;border-collapse:collapse;font-size:.875rem;white-space:nowrap}
+    .table-wrapper{display:block;max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:var(--radius-sm);border:1px solid var(--border)}
+    table{width:max-content;min-width:100%;border-collapse:collapse;font-size:.875rem;white-space:nowrap}
     th,td{
       padding:.6rem .85rem;
       border-bottom:1px solid var(--border);
@@ -996,6 +996,7 @@ function resetGame() {
   state.rounds = [];
   _nextRoundId  = 1;
   render();
+  sessionStorage.removeItem('big2-state');
 }
 
 // ════════════════════════════════════════════════════════════
@@ -1007,6 +1008,35 @@ function render() {
   renderRoundEntry();
   renderResultsTable();
   renderSummary();
+  saveState();
+}
+
+// ════════════════════════════════════════════════════════════
+// SESSION STORAGE
+// ════════════════════════════════════════════════════════════
+
+function saveState() {
+  try {
+    sessionStorage.setItem('big2-state', JSON.stringify(state));
+  } catch (e) {
+    // sessionStorage unavailable (e.g. private browsing quota) — silently ignore
+  }
+}
+
+function loadState() {
+  try {
+    const raw = sessionStorage.getItem('big2-state');
+    if (!raw) return null;
+    const saved = JSON.parse(raw);
+    if (!Array.isArray(saved.players) || !Array.isArray(saved.rounds)) return null;
+    state.players = saved.players;
+    state.rounds  = saved.rounds;
+    _nextPlayerId = (state.players.length ? Math.max(...state.players.map(p => p.id)) : 0) + 1;
+    _nextRoundId  = (state.rounds.length  ? Math.max(...state.rounds.map(r => r.id))  : 0) + 1;
+    return state;
+  } catch (e) {
+    return null;
+  }
 }
 
 // ════════════════════════════════════════════════════════════
@@ -1021,6 +1051,7 @@ document.querySelectorAll('dialog').forEach(dlg => {
 // INIT
 // ════════════════════════════════════════════════════════════
 
+loadState();
 render();
 </script>
 </body>
