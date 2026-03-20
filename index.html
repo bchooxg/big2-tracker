@@ -29,23 +29,31 @@
 
     /* ── Reset & base ── */
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    html{width:100%;overflow:hidden;height:100%}
+    html,body{width:100%;margin:0;padding:0}
     body{
       font-family:system-ui,-apple-system,sans-serif;
       background:var(--bg);
       color:var(--neutral);
       min-height:100vh;
       line-height:1.5;
-      overflow-x:hidden;
-      overflow-y:auto;
+    }
+    /*
+     * iOS Safari ignores overflow-x:hidden on html/body.
+     * Fix: position:fixed on a full-viewport wrapper creates a true
+     * clipping boundary that iOS cannot expand.  The inner scroller
+     * then handles normal vertical scrolling.
+     */
+    #app-root{
+      position:fixed;
+      top:0;left:0;right:0;bottom:0;
+      overflow:hidden;          /* hard clip — nothing escapes */
+    }
+    #app-scroll{
       width:100%;
       height:100%;
-    }
-    /* iOS Safari viewport fix — overflow:hidden on html/body is unreliable */
-    #app-root{
-      width:100%;
-      max-width:100vw;
       overflow-x:hidden;
+      overflow-y:auto;
+      -webkit-overflow-scrolling:touch;
     }
     input,select,textarea,button{font-family:inherit}
     /* Prevent iOS auto-zoom on input focus */
@@ -283,6 +291,14 @@
     /* Player columns min-width */
     th:not(:first-child):not(:last-child):not(:nth-last-child(2)){min-width:90px}
 
+    /* Disable sticky columns on mobile — iOS WebKit bug causes viewport expansion */
+    @media(max-width:768px){
+      th:first-child,td.round-label,tr.totals-row td:first-child{
+        position:static;
+        box-shadow:none;
+      }
+    }
+
     .main-label{font-weight:700;font-size:.9rem}
     .sub-label{font-size:.72rem;color:var(--accent);font-weight:500}
     .cards-line{font-size:.75rem;color:var(--muted)}
@@ -423,6 +439,7 @@
 </head>
 <body>
 <div id="app-root">
+<div id="app-scroll">
 
 <header>
   <h1>Big 2 Game Tracker</h1>
@@ -478,6 +495,7 @@
   </div>
 
 </main>
+</div><!-- /#app-scroll -->
 </div><!-- /#app-root -->
 
 <!-- ── Special Combo Modal ── -->
