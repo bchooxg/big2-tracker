@@ -6,7 +6,8 @@
       "Bash(openspec instructions:*)",
       "Bash(mkdir -p openspec/changes/archive)",
       "Bash(mv openspec/changes/big2-game-tracker openspec/changes/archive/2026-03-21-big2-game-tracker)",
-      "Bash(mv openspec/changes/ui-modernisation openspec/changes/archive/2026-03-21-ui-modernisation)"
+      "Bash(mv openspec/changes/ui-modernisation openspec/changes/archive/2026-03-21-ui-modernisation)",
+      "Bash(spark skill *)"
     ]
   }
 }

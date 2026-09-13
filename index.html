@@ -235,7 +235,7 @@
     }
 
     /* ── Results table ── */
-    .table-wrapper{display:block;max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:var(--radius-sm);border:1px solid var(--border)}
+    .table-wrapper{display:block;max-width:100%;max-height:70vh;overflow-x:auto;overflow-y:auto;-webkit-overflow-scrolling:touch;border-radius:var(--radius-sm);border:1px solid var(--border)}
     table{min-width:100%;border-collapse:collapse;font-size:.875rem;white-space:nowrap}
     th,td{
       padding:.6rem .85rem;
@@ -253,13 +253,14 @@
       letter-spacing:.06em;
       color:var(--muted);
       border-bottom:2px solid var(--border);
+      position:sticky;top:0;z-index:3;
     }
     tbody tr:nth-child(even):not(.totals-row){background:var(--surface)}
     tbody tr:hover:not(.totals-row){background:var(--surface-hover)}
 
     /* Sticky first column */
     th:first-child{
-      position:sticky;left:0;z-index:2;
+      position:sticky;left:0;z-index:4;
       background:var(--surface);
       box-shadow:2px 0 4px rgba(0,0,0,.06);
     }
@@ -474,6 +475,12 @@
     <h2>Summary</h2>
     <div class="summary-grid" id="summary-grid"></div>
     <button class="btn btn-ghost btn-sm" onclick="resetGame()">Reset Game</button>
+  </div>
+
+  <!-- ── Settlement ── -->
+  <div class="card">
+    <h2>Who Pays Who</h2>
+    <div id="settlement-list"></div>
   </div>
 
 </main>
@@ -1002,6 +1009,62 @@ function renderSummary() {
   `;
 }
 
+/**
+ * Given {playerId: netTotal}, compute the minimal set of payments
+ * that settles all balances (greedy: largest creditor paid by largest debtor).
+ * Returns [{from, to, amount}]
+ */
+function computeSettlements(totals) {
+  const creditors = [];
+  const debtors = [];
+  state.players.forEach(p => {
+    const v = r2(totals[p.id] ?? 0);
+    if (v > 0.005) creditors.push({ player: p, amount: v });
+    else if (v < -0.005) debtors.push({ player: p, amount: -v });
+  });
+  creditors.sort((a, b) => b.amount - a.amount);
+  debtors.sort((a, b) => b.amount - a.amount);
+
+  const payments = [];
+  let ci = 0, di = 0;
+  while (ci < creditors.length && di < debtors.length) {
+    const c = creditors[ci], d = debtors[di];
+    const amount = r2(Math.min(c.amount, d.amount));
+    if (amount > 0.005) {
+      payments.push({ from: d.player, to: c.player, amount });
+    }
+    c.amount = r2(c.amount - amount);
+    d.amount = r2(d.amount - amount);
+    if (c.amount <= 0.005) ci++;
+    if (d.amount <= 0.005) di++;
+  }
+  return payments;
+}
+
+function renderSettlement() {
+  const totals = computeTotals();
+  const payments = computeSettlements(totals);
+  const container = document.getElementById('settlement-list');
+
+  if (state.rounds.length === 0) {
+    container.innerHTML = `<div style="text-align:center;color:var(--muted);padding:1rem;font-size:.9rem">No rounds yet</div>`;
+    return;
+  }
+  if (payments.length === 0) {
+    container.innerHTML = `<div style="text-align:center;color:var(--muted);padding:1rem;font-size:.9rem">Everyone is settled up ✓</div>`;
+    return;
+  }
+
+  container.innerHTML = `<ul style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.6rem">
+    ${payments.map(p => `
+      <li style="display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding:.7rem .9rem;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm)">
+        <span><strong>${escHtml(p.from.name)}</strong> → <strong>${escHtml(p.to.name)}</strong></span>
+        <span class="money-line money-pos">$${p.amount.toFixed(2)}</span>
+      </li>
+    `).join('')}
+  </ul>`;
+}
+
 function resetGame() {
   if (!confirm('Reset game? All rounds will be cleared. Players will stay.')) return;
   state.rounds = [];
@@ -1019,6 +1082,7 @@ function render() {
   renderRoundEntry();
   renderResultsTable();
   renderSummary();
+  renderSettlement();
   saveState();
 }
 
