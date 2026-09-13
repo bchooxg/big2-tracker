@@ -485,6 +485,20 @@
 
 </main>
 
+<footer style="text-align:center;color:var(--muted);font-size:.78rem;padding:1.25rem 0 2rem">
+  <span id="app-version"></span> ·
+  <button class="btn btn-ghost btn-sm" onclick="document.getElementById('changelog-modal').showModal()">Changelog</button>
+</footer>
+
+<!-- ── Changelog Modal ── -->
+<dialog id="changelog-modal">
+  <h3>Changelog</h3>
+  <div class="modal-body" id="changelog-body" style="max-height:60vh;overflow-y:auto"></div>
+  <div class="modal-actions">
+    <button class="btn btn-primary" onclick="document.getElementById('changelog-modal').close()">Close</button>
+  </div>
+</dialog>
+
 <!-- ── Special Combo Modal ── -->
 <dialog id="special-modal">
   <h3>Add Special Combo</h3>
@@ -518,6 +532,40 @@
 </dialog>
 
 <script>
+// ════════════════════════════════════════════════════════════
+// VERSION & CHANGELOG
+// ════════════════════════════════════════════════════════════
+
+const APP_VERSION = '1.2.0';
+
+// Keep in sync with CHANGELOG.md
+const CHANGELOG = [
+  { version: '1.2.0', date: '2026-09-13', changes: [
+    'Added version number and in-app changelog viewer (footer link).',
+    'Fixed sticky table header: results table now scrolls within a capped height so player names stay visible.',
+  ]},
+  { version: '1.1.0', date: '2026-09-13', changes: [
+    'Added "Who Pays Who" settlement section (minimal payments to settle all balances).',
+    'Added sticky table header (first attempt).',
+  ]},
+  { version: '1.0.0', date: '2026-03-21', changes: [
+    'Initial Big 2 Game Tracker: players, round entry, scoring engine, results table, summary stats.',
+    'Mobile fixes: iOS Safari viewport/zoom, numeric keypad, responsive layout, session persistence.',
+  ]},
+];
+
+function renderVersionInfo() {
+  document.getElementById('app-version').textContent = `v${APP_VERSION}`;
+  document.getElementById('changelog-body').innerHTML = CHANGELOG.map(entry => `
+    <div style="margin-bottom:1rem">
+      <div style="font-weight:700">v${entry.version} <span style="font-weight:400;color:var(--muted);font-size:.8rem">— ${entry.date}</span></div>
+      <ul style="margin:.35rem 0 0;padding-left:1.2rem;font-size:.85rem;color:var(--neutral)">
+        ${entry.changes.map(c => `<li>${escHtml(c)}</li>`).join('')}
+      </ul>
+    </div>
+  `).join('');
+}
+
 // ════════════════════════════════════════════════════════════
 // STATE
 // ════════════════════════════════════════════════════════════
@@ -1128,6 +1176,7 @@ document.querySelectorAll('dialog').forEach(dlg => {
 
 loadState();
 render();
+renderVersionInfo();
 </script>
 </body>
 </html>
